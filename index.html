@@ -259,9 +259,13 @@ label.check{flex-direction:row;gap:8px;align-items:center;font-weight:500;margin
         <div class="formgrid">
           <label class="span2">Library *<select id="h_school" required></select></label>
           <label>Accession no. *<input id="h_acc" required placeholder="2026-0001"></label>
+          <label>DDC class no.
+            <span class="callfield"><input id="h_ddc" inputmode="decimal" placeholder="e.g. 599.75"><button type="button" class="ghost sm" id="ddcSuggest">Suggest</button></span>
+            <span class="hint" id="ddcHint">Suggested from the title and subject. Check it against the DDC.</span>
+          </label>
           <label class="span2">Call number
             <span class="callfield"><input id="h_call" placeholder="Fills in automatically"><button type="button" class="ghost sm" id="callSuggest">Suggest</button></span>
-            <span class="hint" id="callHint">A call number is suggested from the subject, author and year. You can change it.</span>
+            <span class="hint" id="callHint">Made from the collection prefix, DDC class, LC Cutter number of the author (or title) and year. You can change it.</span>
           </label>
         </div>
       </fieldset>
@@ -274,7 +278,7 @@ label.check{flex-direction:row;gap:8px;align-items:center;font-weight:500;margin
           <label>Publisher<input id="h_publisher"></label>
           <label>Copyright year<input id="h_year" inputmode="numeric" placeholder="2023"></label>
           <label>Pages<input id="h_pages" placeholder="245 p."></label>
-          <label>ISBN<input id="h_isbn"></label>
+          <label>ISBN<span class="callfield"><input id="h_isbn"><button type="button" class="ghost sm" id="isbnFind">Find details</button></span><span class="hint" id="isbnHint">Fills in title, author, publisher and DDC when the book is in Open Library.</span></label>
           <label>Language<select id="h_lang"></select></label>
           <label>Subject / classification *<select id="h_subject" required></select></label>
           <label>Grade level<select id="h_grade"></select></label>
@@ -297,7 +301,7 @@ label.check{flex-direction:row;gap:8px;align-items:center;font-weight:500;margin
           <label>Condition<select id="h_cond"><option>Good</option><option>Fair</option><option>Poor</option></select></label>
           <label>Source of fund<select id="h_fund"></select></label>
           <label>Date received<input id="h_date" type="date"></label>
-          <label>DR No. / IAR No.<input id="h_dr" placeholder="DR-2026-0145 or IAR-2026-031"></label>
+          <label>DR No. / IAR No. (optional)<input id="h_dr" placeholder="Leave blank if none, e.g. donations"></label>
           <label>Bin no. (Library Hub books)<input id="h_bin" placeholder="e.g. Bin 01"><span class="hint">Library Hub collections are lent by bin. Leave blank for school libraries.</span></label>
           <label class="span2">Remarks<input id="h_remarks"></label>
         </div>
@@ -412,8 +416,8 @@ label.check{flex-direction:row;gap:8px;align-items:center;font-weight:500;margin
 
 <script>
 /* ===================== constants ===================== */
-const SUBJECTS=["000 General Works","100 Philosophy & Psychology","200 Religion & Values Education","300 Social Sciences / Araling Panlipunan","400 Language / English","500 Science & Mathematics","600 Technology / TLE & Health","700 Arts, MAPEH & Recreation","800 Literature","899 Filipino Literature","900 History & Geography","Fiction","Reference (Dictionary, Encyclopedia)","Filipiniana","Textbooks / Learner's Materials","Teacher's Guides","Periodicals"];
-const SUBJ_CALL={"000 General Works":["","000"],"100 Philosophy & Psychology":["","100"],"200 Religion & Values Education":["","200"],"300 Social Sciences / Araling Panlipunan":["","300"],"400 Language / English":["","420"],"500 Science & Mathematics":["","500"],"600 Technology / TLE & Health":["","600"],"700 Arts, MAPEH & Recreation":["","700"],"800 Literature":["","800"],"899 Filipino Literature":["","899.21"],"900 History & Geography":["","900"],"Fiction":["Fic",""],"Reference (Dictionary, Encyclopedia)":["R","030"],"Filipiniana":["FIL","959.9"],"Textbooks / Learner's Materials":["TX",""],"Teacher's Guides":["TG","371.3"],"Periodicals":["PER","050"]};
+const SUBJECTS=["000 General Works","100 Philosophy & Psychology","200 Religion & Values Education","300 Social Sciences / Araling Panlipunan","400 Language / English","500 Science & Mathematics","600 Technology / TLE & Health","700 Arts, MAPEH & Recreation","800 Literature","899 Filipino Literature","900 History & Geography","Fiction","Easy Books (picture books, K–3)","Biography","Reference (Dictionary, Encyclopedia)","Filipiniana","Textbooks / Learner's Materials","Teacher's Guides","Periodicals"];
+const SUBJ_CALL={"000 General Works":["","000"],"100 Philosophy & Psychology":["","100"],"200 Religion & Values Education":["","200"],"300 Social Sciences / Araling Panlipunan":["","300"],"400 Language / English":["","420"],"500 Science & Mathematics":["","500"],"600 Technology / TLE & Health":["","600"],"700 Arts, MAPEH & Recreation":["","700"],"800 Literature":["","800"],"899 Filipino Literature":["","899.21"],"900 History & Geography":["","900"],"Fiction":["F",""],"Easy Books (picture books, K–3)":["E",""],"Biography":["B","920"],"Reference (Dictionary, Encyclopedia)":["R","030"],"Filipiniana":["Fil","959.9"],"Textbooks / Learner's Materials":["TX",""],"Teacher's Guides":["TG","371.3"],"Periodicals":["Per","050"]};
 const GRADES=["","Kindergarten","Grade 1","Grade 2","Grade 3","Grade 4","Grade 5","Grade 6","Grade 7","Grade 8","Grade 9","Grade 10","Grade 11","Grade 12","Multi-grade / General"];
 const TYPES=["Book","Textbook","Learner's Material","Reference","Periodical","E-resource","Audio-visual","Other"];
 const ITYPE={"Book":"BK","Textbook":"TB","Learner's Material":"LM","Reference":"REF","Periodical":"SER","E-resource":"ER","Audio-visual":"AV","Other":"OTH"};
@@ -538,12 +542,77 @@ function lcCutter(word){const s=fold(word).replace(/[^A-Za-z]/g,"");if(!s)return
 function mainEntryWord(author,title){const a=String(author||"").split(";")[0].trim();
   if(a)return a.includes(",")?a.split(",")[0].trim():a.split(/\s+/).pop();
   return String(title||"").replace(/^(the|an|a|ang|mga)\s+/i,"").split(/\s+/)[0]||"";}
-function suggestCall(d){const [pre,cls]=SUBJ_CALL[d.subject]||["",""];const prefix=d.type==="Reference"&&!pre?"R":pre;
+/* LC Cutter number (Library of Congress Cutter Table) */
+function lcCutter(word){const w=fold(word).toLowerCase().replace(/[^a-z]/g,"");if(!w)return "";
+  const U=w[0].toUpperCase();let rest,first;
+  const pick=(ch,tbl)=>{let d=tbl[0][1];for(const [k,v] of tbl){if(ch>=k)d=v;else break}return d};
+  const VOW=[["a",2],["b",2],["d",3],["l",4],["n",5],["p",6],["r",7],["s",8],["u",9]];
+  const CON=[["a",3],["e",4],["i",5],["o",6],["r",7],["u",8],["y",9]];
+  const SS=[["a",2],["e",4],["h",5],["m",6],["t",7],["u",8],["w",9]];
+  const EXP=[["a",3],["e",4],["i",5],["m",6],["p",7],["t",8],["w",9]];
+  if("aeiou".includes(w[0])){first=w[1]?pick(w[1],VOW):"";rest=w.slice(2)}
+  else if(w[0]==="s"){if(w.startsWith("sch")||w.startsWith("sc")&&w[2]==="h"){first=3;rest=w.slice(3)}else{first=w[1]?pick(w[1],SS):"";rest=w.slice(2)}}
+  else if(w.startsWith("qu")){first=w[2]?pick(w[2],[["a",3],["e",4],["i",5],["o",6],["r",7],["t",8],["y",9]]):"";rest=w.slice(3)}
+  else if(w[0]==="q"){first=2;rest=w.slice(1)}
+  else{first=w[1]?pick(w[1],CON):"";rest=w.slice(2)}
+  const exp=rest[0]?pick(rest[0],EXP):"";return U+first+exp}
+/* DDC suggestions from words in the title (English and Filipino). The librarian checks them. */
+const DDC_KEYS=[
+ [/(filipino|tagalog).*(dictionar|diksiyonaryo)|diksiyonaryo|talahuluganan|talatinigan/,"499.2113"],[/thesaur/,"423.12"],[/dictionar/,"423"],[/encyclop|ensiklopedya/,"031"],[/almanac/,"031.02"],[/\batlas\b|\bmaps?\b/,"912"],
+ [/balarila|gramatika/,"499.2115"],[/grammar/,"425"],[/phonics|beginning reading|learn to read|pagbasa/,"372.4"],[/public speaking|\bspeech\b/,"808.51"],[/composition|creative writing|pagsulat/,"808"],
+ [/\btula\b|tulaan/,"899.2111"],[/poem|poetry/,"808.81"],[/maikling kuwento/,"899.2113"],[/short stor/,"808.831"],
+ [/bugtong|riddle/,"398.6"],[/salawikain|proverb/,"398.9"],[/folk ?tale|fable|legend|alamat|pabula|kuwentong bayan|myth|epic/,"398.2"],
+ [/dinosaur/,"567.9"],[/butterfl|insect|kulisap/,"595.7"],[/\bbirds?\b|ibon/,"598"],[/reptile|snake|turtle/,"597.9"],[/\bfish|isda/,"597"],[/mammal/,"599"],[/marine life|sea animal|ocean animal|coral/,"591.77"],[/animal|hayop/,"590"],
+ [/\btrees?\b|puno\b/,"582.16"],[/flower|bulaklak/,"582.13"],[/plant|halaman/,"580"],
+ [/human body|katawan ng tao|anatomy/,"612"],[/first aid|pangunang lunas/,"616.0252"],[/nutrition|food group|nutrisyon/,"613.2"],[/drug|substance abuse/,"362.29"],[/disease|sakit/,"616"],[/health|kalusugan|hygiene/,"613"],
+ [/solar system|planet/,"523.2"],[/astronom|outer space|\bstars?\b|\bspace\b|kalawakan/,"520"],[/typhoon|bagyo/,"551.552"],[/earthquake|lindol/,"551.22"],[/volcano|bulkan/,"551.21"],[/climate change/,"363.73874"],[/weather|panahon|climate/,"551.6"],
+ [/disaster|drrm|calamit|sakuna/,"363.34"],[/rocks?\b|mineral/,"552"],[/earth science/,"550"],[/chemistry|kimika/,"540"],[/physics|pisika/,"530"],[/biology|biyolohiya/,"570"],
+ [/recycl/,"363.728"],[/pollution|polusyon/,"363.73"],[/environment|kapaligiran|ecolog/,"363.7"],[/science|agham/,"500"],
+ [/algebra/,"512"],[/geometry|heometriya/,"516"],[/trigonometr/,"516.24"],[/calculus/,"515"],[/statistic|probabilit/,"519.5"],[/arithmetic|fraction|multiplication|addition|subtraction/,"513"],[/math|matematika/,"510"],
+ [/programming|coding/,"005.1"],[/internet/,"004.678"],[/computer|\bict\b|kompyuter/,"004"],
+ [/electricity|electrical/,"621.3"],[/electronic/,"621.381"],[/carpentry|woodwork/,"694"],[/engineering/,"620"],
+ [/fisher|aquacultur|pangingisda/,"639"],[/livestock|poultry|animal raising/,"636"],[/gardening|vegetable/,"635"],[/agricultur|farming|pagsasaka/,"630"],
+ [/recipe|cooking|baking|cookery|pagluluto/,"641.5"],[/sewing|dressmaking/,"646.2"],[/beauty care|cosmetolog/,"646.7"],[/home economics/,"640"],
+ [/bookkeeping|accounting/,"657"],[/marketing/,"658.8"],[/entrepreneur|business|negosyo/,"658"],
+ [/music|musika/,"780"],[/drawing|pagguhit/,"741.2"],[/handicraft|crafts/,"745.5"],[/painting/,"750"],[/dance|sayaw/,"792.8"],[/theater|theatre|drama/,"792"],[/photograph/,"770"],
+ [/basketball/,"796.323"],[/volleyball/,"796.325"],[/physical education|physical fitness/,"613.7"],[/sports|games|laro/,"796"],[/\barts?\b|sining/,"700"],
+ [/bible|biblia/,"220"],[/catholic/,"282"],[/islam|muslim/,"297"],[/religion|relihiyon/,"200"],
+ [/good manners|etiquette|kagandahang asal/,"395"],[/values|character|pagpapakatao|\besp\b|ethics/,"170"],[/psycholog|sikolohiya/,"150"],[/philosoph|pilosopiya/,"100"],[/logic\b/,"160"],
+ [/constitution|saligang batas/,"342.599"],[/human rights|karapatang pantao/,"323"],[/government|pamahalaan|politic/,"320"],[/\blaw\b|batas/,"340"],[/econom|ekonomiks/,"330"],[/career/,"331.702"],
+ [/gender/,"305.3"],[/population/,"304.6"],[/family|pamilya/,"306.85"],[/festival|fiesta|holiday/,"394.26"],[/culture|customs|kultura/,"390"],[/sociolog/,"301"],
+ [/special education|sped/,"371.9"],[/guidance|counsel/,"371.4"],[/curriculum/,"375"],[/early childhood|kindergarten/,"372.21"],[/teaching|teacher|pagtuturo/,"371.102"],[/education|edukasyon/,"370"],
+ [/rizal|philippine history|kasaysayan ng pilipinas|history of the filipino|filipino people|katipunan|philippine revolution/,"959.9"],[/philippine geography|travel.*philippines/,"915.99"],[/asian history|history of asia|\basia\b|asya/,"950"],[/world history|kasaysayang pandaigdig/,"909"],[/history|kasaysayan/,"900"],[/geography|heograpiya/,"910"],
+ [/biograph|talambuhay/,"920"],[/panitikan|philippine literature/,"899.21"],[/english language/,"420"],[/\bwika\b|filipino language/,"499.211"],[/literature/,"800"],[/social studies|araling panlipunan/,"300"],[/mapeh/,"700"]];
+function suggestDDC(d){const t=fold(String(d.title||"")).toLowerCase();
+  if(d.subject==="Biography")return {ddc:"920",why:"Biography"};
+  for(const [re,n] of DDC_KEYS){const m=re.exec(t);if(m)return {ddc:n,why:`title word “${m[0].trim()}”`}}
+  const base=(SUBJ_CALL[d.subject]||["",""])[1];return base?{ddc:base,why:"the subject"}:{ddc:"",why:""}}
+const NO_CLASS=["F","E","B","Fic","TX"];
+function suggestCall(d){const [pre]=SUBJ_CALL[d.subject]||["",""];const prefix=d.type==="Reference"&&!pre?"R":pre;
   const yr=/^\d{4}$/.test(String(d.year||"").trim())?String(d.year).trim():"";
-  const mark=fold(mainEntryWord(d.author,d.title)).replace(/[^A-Za-z]/g,"").slice(0,3).toUpperCase();
+  const ddc=/^\d{3}(\.\d+)?$/.test(String(d.ddc||"").trim())?String(d.ddc).trim():suggestDDC(d).ddc;
+  const cls=NO_CLASS.includes(prefix)?"":ddc;
+  const mark=lcCutter(mainEntryWord(d.author,d.title));
   return [prefix,cls,mark,yr].filter(Boolean).join(" ");}
-const formSnapshot=()=>({subject:$("h_subject").value,type:$("h_type").value,year:$("h_year").value,author:$("h_author").value,title:$("h_title").value});
-function autoCall(){if(callManual)return;const s=suggestCall(formSnapshot());if(s)$("h_call").value=s;}
+const formSnapshot=()=>({subject:$("h_subject").value,type:$("h_type").value,year:$("h_year").value,author:$("h_author").value,title:$("h_title").value,ddc:$("h_ddc").value});
+let ddcManual=false;
+function autoDDC(){if(ddcManual)return;const s=suggestDDC(formSnapshot());$("h_ddc").value=s.ddc;$("ddcHint").textContent=s.ddc?`Suggested from ${s.why}. Check it against the DDC.`:"Type the DDC class number.";}
+function autoCall(){autoDDC();if(callManual)return;const s=suggestCall(formSnapshot());if(s)$("h_call").value=s;}
+async function isbnFind(){const isbn=$("h_isbn").value.replace(/[^0-9Xx]/g,"");if(isbn.length<10){$("isbnHint").textContent="Type the 10- or 13-digit ISBN first.";return}
+  $("isbnHint").textContent="Looking up…";
+  try{const r=await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`);const j=await r.json();const b=j["ISBN:"+isbn];
+    if(!b){$("isbnHint").textContent="Not found in Open Library. Please type the details.";return}
+    const set=(id,v)=>{if(v&&!$(id).value.trim())$(id).value=v};
+    set("h_title",b.title+(b.subtitle?" : "+b.subtitle:""));
+    if(b.authors&&b.authors.length)set("h_author",b.authors.map(a=>{const p=String(a.name).trim().split(/\s+/);return p.length>1?p.pop()+", "+p.join(" "):p[0]}).join("; "));
+    if(b.publishers&&b.publishers[0])set("h_publisher",b.publishers[0].name);
+    if(b.publish_places&&b.publish_places[0])set("h_place",b.publish_places[0].name);
+    const y=/\d{4}/.exec(b.publish_date||"");if(y)set("h_year",y[0]);
+    if(b.number_of_pages)set("h_pages",b.number_of_pages+" p.");
+    const dd=b.classifications&&b.classifications.dewey_decimal_class&&b.classifications.dewey_decimal_class[0];
+    if(dd&&/^\d{3}/.test(dd)){$("h_ddc").value=String(dd).replace(/[^\d.]/g,"").replace(/^(\d{3}\.\d*?)0*$/,"$1").replace(/\.$/,"");ddcManual=true;$("ddcHint").textContent="From Open Library. Check it."}
+    callManual=false;autoCall();$("isbnHint").textContent="Details filled in from Open Library. Please check them."}
+  catch(e){$("isbnHint").textContent="Couldn't reach Open Library. Please type the details."}}
 const cleanCode=s=>String(s||"").toUpperCase().replace(/[^A-Z0-9\-]/g,"");
 function makeBarcodes(sid,acc,copies){const base=cleanCode(sid)+"-"+cleanCode(acc);const n=Math.min(200,Math.max(1,parseInt(copies)||1));return n===1?[base]:Array.from({length:n},(_,i)=>`${base}-C${i+1}`)}
 const barcodesOf=h=>(h.barcodes&&h.barcodes.length)?h.barcodes:makeBarcodes(h.schoolId,h.accessionNo,h.copies);
@@ -567,7 +636,7 @@ function marcFields(h){
   ctl("008",created.slice(2,10).replace(/-/g,"")+"s"+yr+"    "+"ph "+"    "+audience(h.grade)+" "+"    "+" "+"000"+" "+lit+" "+(LANGS[h.language]||"eng")+" "+"d");
   dat("020"," "," ",[["a",h.isbn]]);
   dat("040"," "," ",[["a","SDO-ADN"],["b","eng"],["c","SDO-ADN"]]);
-  const ddc=/(^|\s)(\d{3}(\.\d+)?)(\s|$)/.exec(String(h.callNo||""));if(ddc)dat("082","0","4",[["a",ddc[2]],["2","23"]]);
+  const ddc=h.ddc?[0,0,h.ddc]:/(^|\s)(\d{3}(\.\d+)?)(\s|$)/.exec(String(h.callNo||""));if(ddc)dat("082","0","4",[["a",ddc[2]],["2","23"]]);
   dat("090"," "," ",[["a",h.callNo]]);
   const authors=String(h.author||"").split(";").map(s=>s.trim()).filter(Boolean);
   if(authors[0])dat("100","1"," ",[["a",authors[0]+(/[.)]$/.test(authors[0])?"":",")]]);
@@ -598,7 +667,7 @@ addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("modal").hidden)closeModa
 function recNormal(h){const out=h.outCopies;
   const rows=[["Title",h.title],["Author(s)",h.author],["Edition",h.edition],["Publication",[h.place,h.publisher,h.year].filter(Boolean).join(" · ")],["Pages",h.pages],["ISBN",h.isbn],["Language",h.language],["Subject",h.subject],["Grade level",h.grade],["Type of resource",h.type],
    ["Call number",h.callNo],["Accession no.",h.accessionNo],["Barcode(s)",barcodesOf(h).join(", ")],["Library",libName(h.schoolId)+" · "+catOf(h.schoolId)],["Copies",`${h.copies}${out?` (${out} out on interlibrary loan, ${Math.max(0,h.copies-out)} available)`:""}`],["Condition",h.condition],
-   ["Source of fund",h.fund],["Date received",fmtDate(h.dateReceived)],["DR No. / IAR No.",h.drNo],["Bin (Library Hub)",h.bin],["Remarks",h.remarks],["Encoded by",h.encodedBy]];
+   ["Source of fund",h.fund],["Date received",fmtDate(h.dateReceived)],["DR No. / IAR No.",h.drNo],["DDC class no.",h.ddc],["Bin (Library Hub)",h.bin],["Remarks",h.remarks],["Encoded by",h.encodedBy]];
   return `<dl class="rec">${rows.filter(r=>r[1]!==undefined&&r[1]!==null&&String(r[1]).trim()!=="").map(([k,v])=>`<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>`}
 async function showRecord(id,mode){
   if(!current||current._id!==String(id)){try{current=(await api("record",{id})).record}catch(e){toast(e.message);return}}
@@ -957,18 +1026,18 @@ async function loadHome(){const out=$("homeOut");
    <div class="split"><div class="stack"><h3>Your collection by subject</h3><div class="panel">${profileHTML(P)}</div></div><div class="stack"><h3>Recently added</h3>${recent(h.recent)}</div></div>`;}
 
 /* ===================== add / edit ===================== */
-const F={school:"schoolId",acc:"accessionNo",call:"callNo",title:"title",author:"author",edition:"edition",place:"place",publisher:"publisher",year:"year",pages:"pages",isbn:"isbn",lang:"language",subject:"subject",grade:"grade",type:"type",copies:"copies",cond:"condition",fund:"fund",date:"dateReceived",dr:"drNo",remarks:"remarks",bin:"bin"};
+const F={school:"schoolId",acc:"accessionNo",call:"callNo",title:"title",author:"author",edition:"edition",place:"place",publisher:"publisher",year:"year",pages:"pages",isbn:"isbn",lang:"language",subject:"subject",grade:"grade",type:"type",copies:"copies",cond:"condition",fund:"fund",date:"dateReceived",dr:"drNo",remarks:"remarks",bin:"bin",ddc:"ddc"};
 function renderAdd(){const ok=canAdd();$("addGate").hidden=ok;$("addArea").hidden=!ok;
   if(!ok)$("addGate").innerHTML=!ME?`<strong>Log in to add resources</strong><a href="#account">Log in or sign up</a>. The division librarian approves new librarians.`:ME.status==="pending"?"<strong>Waiting for approval</strong>The division librarian will approve your account soon. You can add resources once you're approved.":"<strong>Your account is not approved</strong>Contact the division librarian.";
   else if(!editing&&!$("h_school").value&&myLib())$("h_school").value=myLib();}
 function setCoverPreview(src){$("coverPrev").innerHTML=src?`<img src="${esc(src)}" alt="Cover preview">`:"No cover";$("coverClear").hidden=!src}
-function resetForm(){editing=null;coverData=null;coverChanged=false;callManual=false;
+function resetForm(){editing=null;coverData=null;coverChanged=false;callManual=false;ddcManual=false;
   $("formTitle").textContent="Add a resource to your library's holdings";$("cancelEdit").hidden=true;$("saveBtn").textContent="Save resource";$("delBox").innerHTML="";
   const keep=$("h_school").value;$("addForm").reset();$("h_school").value=lockedLib()||keep;$("h_copies").value=1;setCoverPreview(null);
   $("callHint").textContent="A call number is suggested from the subject, author and year. You can change it.";}
 function startEdit(){const h=current;if(!h||!canEditRec(h))return;closeModal();location.hash="add";
   setTimeout(()=>{Object.entries(F).forEach(([k,f])=>$("h_"+k).value=h[f]??"");if(!$("h_lang").value)$("h_lang").value="English";
-    editing=h;callManual=true;coverChanged=false;coverData=null;setCoverPreview(h.cover||null);
+    editing=h;callManual=true;ddcManual=true;coverChanged=false;coverData=null;setCoverPreview(h.cover||null);
     $("formTitle").textContent="Edit resource";$("cancelEdit").hidden=false;$("saveBtn").textContent="Update resource";
     $("delBox").innerHTML=`<button type="button" class="danger" id="delAsk">Remove from holdings</button>`;$("h_title").focus();},50);}
 function showSaved(h){const box=$("savedBox");box.hidden=false;const codes=barcodesOf(h);
@@ -992,7 +1061,10 @@ $("addForm").addEventListener("submit",async e=>{e.preventDefault();if(!canAdd()
 $("cancelEdit").onclick=()=>{resetForm();$("formMsg").textContent=""};
 ["h_subject","h_type","h_year","h_author","h_title"].forEach(id=>$(id).addEventListener("input",autoCall));
 $("h_call").addEventListener("input",()=>{callManual=$("h_call").value.trim()!==""});
-$("callSuggest").onclick=()=>{callManual=false;$("h_call").value=suggestCall(formSnapshot());$("callHint").textContent="Suggested from the subject, author mark (first 3 letters of the surname) and year. Check it before saving."};
+$("callSuggest").onclick=()=>{callManual=false;$("h_call").value=suggestCall(formSnapshot());$("callHint").textContent="Collection prefix + DDC class + LC Cutter number + year. Check it before saving."};
+$("ddcSuggest").onclick=()=>{ddcManual=false;callManual=false;autoCall()};
+$("h_ddc").addEventListener("input",()=>{ddcManual=$("h_ddc").value.trim()!=="";if(!callManual)$("h_call").value=suggestCall(formSnapshot())});
+$("isbnFind").onclick=isbnFind;
 $("h_cover").addEventListener("change",()=>{const f=$("h_cover").files[0];if(!f)return;if(!/^image\//.test(f.type)){toast("Choose an image file.");return}
   const rd=new FileReader();rd.onload=()=>{const img=new Image();img.onload=()=>{const H=420,scale=Math.min(1,H/img.height);
     const cv=document.createElement("canvas");cv.width=Math.max(1,Math.round(img.width*scale));cv.height=Math.max(1,Math.round(img.height*scale));cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);
@@ -1139,7 +1211,7 @@ function chk(r){if(r&&r.error){const m=r.error.message||String(r.error);
   if(/duplicate key.*username/i.test(m))throw new Error("This username is already taken. Please choose another.");
   if(/Failed to fetch|NetworkError/i.test(m))throw new Error("Can't reach the database. Check your internet connection.");
   throw new Error(m.replace(/^ERROR:\s*/,""))}return r?r.data:null}
-function hout(r){if(!r)return null;return{_id:String(r.id),schoolId:r.school_id,accessionNo:r.accession_no,callNo:r.call_no||"",title:r.title,author:r.author||"",edition:r.edition||"",place:r.place||"",publisher:r.publisher||"",year:r.pub_year||"",pages:r.pages||"",isbn:r.isbn||"",language:r.lang||"",subject:r.subject||"",grade:r.grade||"",type:r.rtype||"Book",copies:r.copies||1,condition:r.cond||"Good",fund:r.fund||"",dateReceived:r.date_received||"",drNo:r.dr_no||"",remarks:r.remarks||"",bin:r.bin||"",barcodes:Array.isArray(r.barcodes)?r.barcodes:[],cover:r.cover_url||"",createdAt:r.created_at,updatedAt:r.updated_at,createdBy:r.created_by,outCopies:0,encodedBy:""}}
+function hout(r){if(!r)return null;return{_id:String(r.id),schoolId:r.school_id,accessionNo:r.accession_no,callNo:r.call_no||"",title:r.title,author:r.author||"",edition:r.edition||"",place:r.place||"",publisher:r.publisher||"",year:r.pub_year||"",pages:r.pages||"",isbn:r.isbn||"",language:r.lang||"",subject:r.subject||"",grade:r.grade||"",type:r.rtype||"Book",copies:r.copies||1,condition:r.cond||"Good",fund:r.fund||"",dateReceived:r.date_received||"",drNo:r.dr_no||"",remarks:r.remarks||"",bin:r.bin||"",ddc:r.ddc||"",barcodes:Array.isArray(r.barcodes)?r.barcodes:[],cover:r.cover_url||"",createdAt:r.created_at,updatedAt:r.updated_at,createdBy:r.created_by,outCopies:0,encodedBy:""}}
 function meOut(p,email){if(!p)return null;return{id:p.id,name:p.name||p.email,designation:p.designation||"",email:p.email||email||"",phone:p.phone||"",schoolId:p.school_id||"",schoolOther:p.req_school_id&&!p.school_id?(p.req_school_name||""):"",role:p.role,status:p.status,mustChange:false,
   username:p.username||"",firstName:p.first_name||"",middleName:p.middle_name||"",lastName:p.last_name||"",extName:p.ext_name||"",sex:p.sex||"",userType:p.user_type||"",district:p.req_district||"",
   reqSchoolId:p.req_school_id||"",reqSchoolName:p.req_school_name||"",reqCategory:p.req_category||"",reqDistrict:p.req_district||"",reqEnrollment:p.req_enrollment||0,createdAt:p.created_at,records:p.records||0}}
@@ -1241,10 +1313,13 @@ async function api(action,data){data=data||{};
     const dup=chk(await sb.from("holdings").select("id,title").eq("school_id",sid).eq("accession_no",acc).neq("id",id||-1).maybeSingle());
     if(dup)throw new Error(`Accession no. ${acc} already exists in this library ("${dup.title}").`);
     const copies=Math.max(1,Math.min(999,parseInt(rec.copies)||1));
-    const row={school_id:sid,accession_no:acc,call_no:S(rec.callNo,80),title,author:S(rec.author,300),edition:S(rec.edition,80),place:S(rec.place,120),publisher:S(rec.publisher,200),pub_year:S(rec.year,10),pages:S(rec.pages,40),isbn:S(rec.isbn,40),lang:S(rec.language||"English",40),subject,grade:S(rec.grade,40),rtype:S(rec.type||"Book",40),copies,cond:["Good","Fair","Poor"].includes(rec.condition)?rec.condition:"Good",fund:S(rec.fund,80),date_received:D(rec.dateReceived),dr_no:S(rec.drNo,80),remarks:S(rec.remarks,500),bin:S(rec.bin,40),barcodes:makeBarcodes(sid,acc,copies)};
+    const row={school_id:sid,accession_no:acc,call_no:S(rec.callNo,80),title,author:S(rec.author,300),edition:S(rec.edition,80),place:S(rec.place,120),publisher:S(rec.publisher,200),pub_year:S(rec.year,10),pages:S(rec.pages,40),isbn:S(rec.isbn,40),lang:S(rec.language||"English",40),subject,grade:S(rec.grade,40),rtype:S(rec.type||"Book",40),copies,cond:["Good","Fair","Poor"].includes(rec.condition)?rec.condition:"Good",fund:S(rec.fund,80),date_received:D(rec.dateReceived),dr_no:S(rec.drNo,80),remarks:S(rec.remarks,500),bin:S(rec.bin,40),ddc:/^\d{3}(\.\d+)?$/.test(String(rec.ddc||"").trim())?String(rec.ddc).trim():"",barcodes:makeBarcodes(sid,acc,copies)};
     let saved;let old=null;
-    if(id){old=chk(await sb.from("holdings").select("cover_url").eq("id",id).maybeSingle());saved=chk(await sb.from("holdings").update(row).eq("id",id).select().single())}
-    else saved=chk(await sb.from("holdings").insert(row).select().single());
+    const put=async r=>id?await sb.from("holdings").update(r).eq("id",id).select().single():await sb.from("holdings").insert(r).select().single();
+    if(id)old=chk(await sb.from("holdings").select("cover_url").eq("id",id).maybeSingle());
+    let res=await put(row);
+    if(res.error&&/'(bin|ddc)'/.test(res.error.message||"")){delete row.bin;delete row.ddc;res=await put(row)}
+    saved=chk(res);
     if(Object.prototype.hasOwnProperty.call(data,"cover")){const prev=old?old.cover_url:"";
       if(!data.cover){saved=chk(await sb.from("holdings").update({cover_url:""}).eq("id",saved.id).select().single())}
       else{const path=`${sid}/${saved.id}-${Date.now()}.jpg`;chk(await sb.storage.from("covers").upload(path,dataUrlToBlob(data.cover),{contentType:"image/jpeg",upsert:true}));
