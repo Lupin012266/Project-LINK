@@ -171,7 +171,7 @@ section[id^="v-"] .stat,section[id^="v-"] .tile{background:var(--surface);border
 section[id^="v-"]{--muted:#1d2638}
 @media (prefers-color-scheme: dark){section[id^="v-"]{--muted:#a3afc4}}
 section[id^="v-"] button.ghost{background:var(--surface)}
-section[id^="v-"] > .note,section[id^="v-"] > .row .note,section[id^="v-"] > .stack > h2,section[id^="v-"] > .split h2,section[id^="v-"] > .split h3,#homeOut > .hello h2,#homeOut > .hello .eyebrow,#homeOut > .sub,#homeOut > .split > .stack > h3{color:#ffffff;text-shadow:0 1px 2px rgba(0,0,0,.35)}
+section[id^="v-"] > .note,section[id^="v-"] > .row .note,section[id^="v-"] > .stack:not(.panel) > h2,section[id^="v-"] > .split h2,section[id^="v-"] > .split h3,#homeOut > .hello h2,#homeOut > .hello .eyebrow,#homeOut > .sub,#homeOut > .split > .stack > h3{color:#ffffff;text-shadow:0 1px 2px rgba(0,0,0,.35)}
 header.top .who{align-items:flex-end}
 .logos{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end;margin-bottom:4px}
 .logos img{display:block;background:#ffffff;box-shadow:0 3px 10px rgba(0,0,0,.28);max-width:100%}
@@ -181,6 +181,22 @@ header.top .who{align-items:flex-end}
 @media (max-width:520px){section[id^="v-"]{padding:14px}}
 .split>*{min-width:0}
 @media (max-width:800px){.split{grid-template-columns:minmax(0,1fr)}}
+.signupbox{display:flex;flex-direction:column;gap:6px;margin-top:18px;padding:16px;border-radius:12px;background:#fdf3d0;border:1px solid #e8c766;color:#3a2a00}
+.signupbtn{background:#b8860b;color:#fff;font-weight:700;margin-top:6px}
+.signupbtn.top{width:100%;margin:0 0 16px}
+#schoolWrap>summary{cursor:pointer;font-weight:700;color:var(--ink)}
+.availbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.libpick{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+.pick{flex-direction:row!important;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:10px;padding:10px;cursor:pointer;font-weight:400}
+.pick input{width:auto;margin-top:4px}.pick.off{opacity:.6;cursor:not-allowed}.pick:has(input:checked){border-color:var(--accent);box-shadow:0 0 0 2px rgba(31,63,143,.18)}
+label.check{flex-direction:row;gap:8px;align-items:center;font-weight:500;margin-top:10px}label.check input{width:auto}
+.banner.warn{border-left-color:#b3362d}
+.rules h3{margin:0 0 8px}.rules h4{margin:0 0 4px}.rulegrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}.rules ul{margin:0;padding-left:18px}.rules li{margin:3px 0}
+.rulesbox>summary,details>summary{cursor:pointer;font-weight:700;color:var(--accent)}.rulesbox{margin-top:6px}
+.charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:18px;margin:14px 0}.chart h4{margin:0 0 8px}.chart .prow{grid-template-columns:minmax(120px,40%) 1fr 90px}.prow small{color:var(--mute,#667)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:10px 0}
+@media (max-width:700px){.charts{grid-template-columns:1fr}.chart .prow{grid-template-columns:1fr 70px}.chart .ptrack{grid-column:1/-1;order:3}}
+#illOut > .stack > h3{color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.35)}
 </style>
 </head>
 <body>
@@ -208,7 +224,7 @@ header.top .who{align-items:flex-end}
     <a href="#dashboard" data-view="dashboard">Dashboard</a>
     <a href="#reports" data-view="reports">Reports</a>
     <a href="#libraries" data-view="libraries">Libraries</a>
-    <a href="#account" data-view="account"><span id="acctLabel">Log in / Sign up</span><span class="count" id="pendCount" hidden></span></a>
+    <a href="#account" data-view="account"><span id="acctLabel">Sign up / Log in</span><span class="count" id="pendCount" hidden></span></a>
   </nav>
   <div class="banner" id="acctBanner" role="status" hidden></div>
 
@@ -282,6 +298,7 @@ header.top .who{align-items:flex-end}
           <label>Source of fund<select id="h_fund"></select></label>
           <label>Date received<input id="h_date" type="date"></label>
           <label>DR No. / IAR No.<input id="h_dr" placeholder="DR-2026-0145 or IAR-2026-031"></label>
+          <label>Bin no. (Library Hub books)<input id="h_bin" placeholder="e.g. Bin 01"><span class="hint">Library Hub collections are lent by bin. Leave blank for school libraries.</span></label>
           <label class="span2">Remarks<input id="h_remarks"></label>
         </div>
       </fieldset>
@@ -310,7 +327,8 @@ header.top .who{align-items:flex-end}
         <h2>Interlibrary loans</h2>
         <label class="w180" style="max-width:340px" id="illLibL">Show loans for<select id="illLib"></select></label>
       </div>
-      <p class="note">To borrow, search the catalog, open a title another library holds, and choose <b>Request to borrow</b>. The lending library approves the request, marks the books as released, and marks them returned when they come back.</p>
+      <details class="rulesbox"><summary>Borrowing rules and policy</summary><div id="rulesOut"></div></details>
+      <p class="note">To borrow, search the catalog, open a title another library holds, and choose <b>Request to borrow</b> (school libraries, 1-day loan) or <b>Borrow this bin</b> (Library Hubs, 1 month, up to 2 bins). The lending library approves the request, marks the books as released, and marks them returned when they come back.</p>
     </div>
     <div id="illOut" class="stack"></div>
   </section>
@@ -345,6 +363,8 @@ header.top .who{align-items:flex-end}
           <option value="subject">Collection by Subject and Grade Level</option>
           <option value="ratio">Book-to-Learner Ratio</option>
           <option value="summary">Division Summary by District and Library Type</option>
+          <option value="util">Utilization and Borrowing Statistics (charts)</option>
+          <option value="size">Libraries by Size of Collection (largest to smallest)</option>
           <option value="ill">Interlibrary Loan Report</option>
           <option value="condition">Condition and Weeding List</option>
           <option value="librarians">Registered Librarians</option>
@@ -366,8 +386,9 @@ header.top .who{align-items:flex-end}
 
   <!-- LIBRARIES -->
   <section id="v-libraries" class="stack" hidden>
-    <form class="panel stack" id="schoolForm" novalidate>
-      <h2>Register a library</h2>
+    <div class="panel stack" id="libIntro"></div>
+    <details class="panel" id="schoolWrap"><summary id="schoolSum">Add a library manually (optional)</summary>
+    <form class="stack" id="schoolForm" novalidate style="margin-top:14px">
       <p class="note" id="schoolNote"></p>
       <div class="formgrid">
         <label>Library / School ID *<input id="s_id" required placeholder="e.g. 131234 or HUB-01"></label>
@@ -378,7 +399,7 @@ header.top .who{align-items:flex-end}
         <label>Enrollment or learners served<input id="s_enroll" type="number" min="0"></label>
       </div>
       <div class="row"><button type="submit" id="s_save">Save library</button><span class="note" id="s_msg"></span></div>
-    </form>
+    </form></details>
     <div class="tablebox" id="schoolList"></div>
   </section>
 
@@ -426,6 +447,21 @@ const lib=id=>schools.find(x=>x.id===id);
 const libName=id=>{const s=lib(id);return s?s.name:"(unregistered library)"};
 const catOf=id=>(lib(id)||{}).category||"School Library – Secondary";
 const catTag=c=>`<span class="cat${c==="Library Hub"?" hub":""}">${esc(c==="Library Hub"?"Library Hub":String(c||"").replace("School Library – ",""))}</span>`;
+const isHub=id=>catOf(id)==="Library Hub";
+const availNow=h=>isHub(h.schoolId)?!!h.bin&&!h.binOut:h.copies-h.outCopies>0;
+function availHTML(h){
+  if(isHub(h.schoolId)){if(!h.bin)return `<span class="pill mute">No bin yet</span>`;
+    return h.binOut?`<span class="pill poor">${esc(h.bin)} on loan</span><div class="sub">Back by ${fmtDate(h.binDue)}</div>`:`<span class="pill good">${esc(h.bin)} available</span>`}
+  const a=Math.max(0,h.copies-h.outCopies);
+  return a?`<span class="pill good">Available</span><div class="sub">${a} of ${h.copies} cop${h.copies===1?"y":"ies"}</div>`:`<span class="pill poor">On loan</span><div class="sub">Expected back ${fmtDate(h.nextDue)||"soon"}</div>`}
+function borrowBtn(h,cls){const mine=myLib();if(!canAdd()||!mine||h.schoolId===mine)return "";
+  const hub=isHub(h.schoolId);
+  return `<button type="button" class="${cls||""}" data-borrow="${h._id}"${availNow(h)?"":" disabled"}>${hub?"Borrow this bin":"Request to borrow"}</button>`}
+const RULES=`<div class="rules"><h3>Borrowing rules and policy</h3><div class="rulegrid">
+ <div><h4>School library collections</h4><ul><li>The loan period is <b>1 day</b>: the book is returned the day after it is borrowed.</li><li>For a longer loan, the borrower must give the <b>reason</b>. The lending library decides.</li><li>Request only for your own library. The lending library approves, releases and marks the book returned.</li></ul></div>
+ <div><h4>Library Hub collections</h4><ul><li>Borrowed <b>by bin</b>, not by single title.</li><li>The loan period is <b>1 month</b> per bin.</li><li>At most <b>2 bins</b> per library at a time (requested or on loan).</li><li>Bins are <b>picked up and returned at the Library Hub</b>.</li></ul></div>
+ <div><h4>For all loans</h4><ul><li>Return on or before the return date. Late loans are marked <b>Overdue</b>.</li><li>The borrowing library replaces lost or damaged items with the same title or an approved equivalent.</li><li>The lending library sees the name and email of the person who made the request.</li><li>Learners borrow through their own school librarian.</li></ul></div>
+</div><p class="note">The division librarian may update these rules.</p></div>`;
 const isOverdue=r=>r.status==="Lent"&&r.dueDate&&r.dueDate<todayISO();
 
 /* ===================== static selects ===================== */
@@ -458,7 +494,7 @@ function applyRole(){libOptions();
   const rl=$("roleLine");
   if(!ME)rl.innerHTML=`Browsing as a visitor · <a href="#account">Log in</a>`;
   else rl.innerHTML=`<span>Logged in as <b>${esc(ME.name)}</b> · ${isAdmin()?"Division librarian":isApproved()?esc(libName(ME.schoolId)):ME.status==="rejected"?"not approved":"waiting for approval"}</span><button type="button" class="ghost sm" id="logoutBtn">Log out</button>`;
-  $("acctLabel").textContent=!ME?"Log in / Sign up":isAdmin()?"Librarian accounts":"My profile";$("homeTab").hidden=!ME;
+  $("acctLabel").textContent=!ME?"Sign up / Log in":isAdmin()?"Librarian accounts":"My profile";$("homeTab").hidden=!ME;
   const b=$("acctBanner");b.hidden=true;
   if(ME&&ME.mustChange){b.hidden=false;b.innerHTML=`The division librarian reset your password. Please <a href="#account">set a new password</a> now.`}
   else if(ME&&!isAdmin()&&ME.status==="pending"){b.hidden=false;b.innerHTML="Your registration is <b>waiting for approval</b> by the division librarian. You can add resources once you're approved."}
@@ -475,14 +511,14 @@ async function loadCatalog(){
   const p={q:$("q").value.trim(),cat:$("fCat").value,school:$("fSchool").value,subject:$("fSubject").value,grade:$("fGrade").value,page};
   $("catCount").textContent="Searching…";
   try{const r=await api("search",p);
-    if(!r.all){$("catCount").textContent="";$("catBox").innerHTML=`<div class="empty"><strong>No holdings yet</strong>Librarians sign up under <a href="#account">Log in / Sign up</a>. Once the division librarian approves them, they add their books under <a href="#add">Add resource</a>.</div>`;return}
+    if(!r.all){$("catCount").textContent="";$("catBox").innerHTML=`<div class="empty"><strong>No holdings yet</strong>Librarians sign up under <a href="#account">Sign up / Log in</a>. Once the division librarian approves them, they add their books under <a href="#add">Add resource</a>.</div>`;return}
     $("catCount").textContent=`${r.total.toLocaleString()} of ${r.all.toLocaleString()} records · ${r.copies.toLocaleString()} copies · select a title to see its cover, full record, MARC view, or request to borrow`;
     if(!r.rows.length){$("catBox").innerHTML=`<div class="empty"><strong>No match</strong>Try a shorter search or clear the filters.</div>`;return}
     const mine=myLib(),pages=Math.ceil(r.total/r.per);
-    $("catBox").innerHTML=`<table><thead><tr><th>Call no.</th><th>Title / author</th><th>Subject</th><th>Grade</th><th>Library</th><th class="num">Copies</th><th>Condition</th><th></th></tr></thead><tbody>`+
-      r.rows.map(h=>{const avail=Math.max(0,h.copies-h.outCopies);
-        const act=canAdd()&&mine&&h.schoolId!==mine?`<button class="ghost sm" data-borrow="${h._id}"${avail?"":" disabled"}>Request to borrow</button>`:canEditRec(h)?`<button class="ghost sm" data-edit="${h._id}">Edit</button>`:"";
-        return `<tr><td class="call">${esc(h.callNo||"—")}<div class="sub">${esc(h.accessionNo)}</div></td><td><button class="link" data-rec="${h._id}">${esc(h.title)}</button><div class="sub">${esc(h.author||"")}${h.year?" · "+esc(h.year):""}</div></td><td>${esc(h.subject)}</td><td>${esc(h.grade||"")}</td><td>${esc(libName(h.schoolId))}<div>${catTag(catOf(h.schoolId))}</div></td><td class="num">${h.copies}${h.outCopies?`<div class="sub">${h.outCopies} on loan</div>`:""}</td><td>${condPill(h.condition)}</td><td>${act}</td></tr>`}).join("")+
+    $("catBox").innerHTML=`<table><thead><tr><th>Call no.</th><th>Title / author</th><th>Subject</th><th>Grade</th><th>Library</th><th class="num">Copies</th><th>Availability</th><th></th></tr></thead><tbody>`+
+      r.rows.map(h=>{
+        const act=borrowBtn(h,"ghost sm")||(canEditRec(h)?`<button class="ghost sm" data-edit="${h._id}">Edit</button>`:"");
+        return `<tr><td class="call">${esc(h.callNo||"—")}<div class="sub">${esc(h.accessionNo)}</div></td><td><button class="link" data-rec="${h._id}">${esc(h.title)}</button><div class="sub">${esc(h.author||"")}${h.year?" · "+esc(h.year):""}</div></td><td>${esc(h.subject)}</td><td>${esc(h.grade||"")}</td><td>${esc(libName(h.schoolId))}<div>${catTag(catOf(h.schoolId))}</div></td><td class="num">${h.copies}</td><td>${availHTML(h)}</td><td>${act}</td></tr>`}).join("")+
       `</tbody></table>`+(pages>1?`<div class="pager"><button class="ghost sm" data-page="${page-1}"${page>0?"":" disabled"}>Previous</button><span class="note">Page ${page+1} of ${pages}</span><button class="ghost sm" data-page="${page+1}"${page+1<pages?"":" disabled"}>Next</button></div>`:"");
   }catch(e){$("catCount").textContent="";$("catBox").innerHTML=`<div class="empty"><strong>Couldn't load the catalog</strong>${esc(e.message)}</div>`}}
 const searchSoon=debounce(()=>{page=0;loadCatalog()},300);
@@ -562,38 +598,95 @@ addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("modal").hidden)closeModa
 function recNormal(h){const out=h.outCopies;
   const rows=[["Title",h.title],["Author(s)",h.author],["Edition",h.edition],["Publication",[h.place,h.publisher,h.year].filter(Boolean).join(" · ")],["Pages",h.pages],["ISBN",h.isbn],["Language",h.language],["Subject",h.subject],["Grade level",h.grade],["Type of resource",h.type],
    ["Call number",h.callNo],["Accession no.",h.accessionNo],["Barcode(s)",barcodesOf(h).join(", ")],["Library",libName(h.schoolId)+" · "+catOf(h.schoolId)],["Copies",`${h.copies}${out?` (${out} out on interlibrary loan, ${Math.max(0,h.copies-out)} available)`:""}`],["Condition",h.condition],
-   ["Source of fund",h.fund],["Date received",fmtDate(h.dateReceived)],["DR No. / IAR No.",h.drNo],["Remarks",h.remarks],["Encoded by",h.encodedBy]];
+   ["Source of fund",h.fund],["Date received",fmtDate(h.dateReceived)],["DR No. / IAR No.",h.drNo],["Bin (Library Hub)",h.bin],["Remarks",h.remarks],["Encoded by",h.encodedBy]];
   return `<dl class="rec">${rows.filter(r=>r[1]!==undefined&&r[1]!==null&&String(r[1]).trim()!=="").map(([k,v])=>`<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>`}
 async function showRecord(id,mode){
   if(!current||current._id!==String(id)){try{current=(await api("record",{id})).record}catch(e){toast(e.message);return}}
   const h=current;mode=mode||store("link-recmode")||"normal";
-  const mine=myLib(),avail=Math.max(0,h.copies-h.outCopies);
-  const borrow=canAdd()&&mine&&h.schoolId!==mine?`<button type="button" data-borrow="${h._id}"${avail?"":" disabled"}>Request to borrow</button>${avail?"":`<span class="note">All copies are out on loan.</span>`}`:canAdd()&&!mine?`<span class="note">To borrow, choose your library at the top of the page.</span>`:"";
+  const mine=myLib();
+  const borrow=borrowBtn(h)||(canAdd()&&!mine?`<span class="note">To borrow, choose your library at the top of the page.</span>`:"");
   const body=mode==="marc"?marcTable(h):mode==="barcode"?`<div class="labels">${barcodesOf(h).map(c=>labelHTML(h,c)).join("")}</div><div><button type="button" class="ghost sm" data-labels="${h._id}">Print these labels</button></div>`:
-    `<div class="coverbox"><div class="cover lg">${h.cover?`<img src="${esc(h.cover)}" alt="Book cover">`:"No cover"}</div>${recNormal(h)}</div>`;
+    `<div class="availbar">${availHTML(h)}<span class="note">${isHub(h.schoolId)?"Library Hub books are lent by bin for 1 month, picked up at the hub.":"School library books are lent for 1 day."}</span></div><div class="coverbox"><div class="cover lg">${h.cover?`<img src="${esc(h.cover)}" alt="Book cover">`:"No cover"}</div>${recNormal(h)}</div><div id="recExtra" class="stack"></div>`;
   openModal(`<div class="sheethead"><div><div class="eyebrow">${esc(libName(h.schoolId))}</div><h3 id="sheetTitle">${esc(h.title)}</h3><div class="call">${esc(h.callNo||"")} ${h.accessionNo?"· "+esc(h.accessionNo):""}</div></div><button type="button" class="ghost sm" data-close>Close</button></div>
    <div class="row" style="justify-content:space-between;align-items:center"><div class="seg" role="group" aria-label="Record view">${[["normal","Normal view"],["marc","MARC tag view"],["barcode","Barcodes"]].map(([m,l])=>`<button type="button" data-recmode="${m}" data-id="${h._id}" aria-pressed="${mode===m}">${l}</button>`).join("")}</div>
-   <div class="actions">${borrow}${canEditRec(h)?`<button type="button" class="ghost" data-edit="${h._id}">Edit record</button>`:""}</div></div>${body}`);}
+   <div class="actions">${borrow}${canEditRec(h)?`<button type="button" class="ghost" data-edit="${h._id}">Edit record</button>`:""}</div></div>${body}`);
+  if(mode==="normal")loadRecExtra(h);}
+async function loadRecExtra(h){const box=$("recExtra");if(!box)return;let x;try{x=await api("rec_extra",{id:h._id})}catch(e){return}
+  if(!$("recExtra")||!current||current._id!==h._id)return;
+  const others=(x.copies||[]).filter(c=>String(c.id)!==h._id);
+  let html="";
+  if(others.length)html+=`<div><h4>This title in other libraries</h4><div class="tablebox"><table><thead><tr><th>Library</th><th class="num">Copies</th><th>Availability</th><th></th></tr></thead><tbody>${others.map(c=>{const o=copyRow(c);return `<tr><td>${esc(c.school_name)}<div>${catTag(c.category)}</div></td><td class="num">${c.copies}</td><td>${availHTML(o)}</td><td><button type="button" class="ghost sm" data-rec="${c.id}">Open</button></td></tr>`}).join("")}</tbody></table></div></div>`;
+  if(x.history)html+=`<div><h4>Borrowing history${h.bin&&isHub(h.schoolId)?` of ${esc(h.bin)}`:""}</h4>${x.history.length?`<div class="tablebox"><table><thead><tr><th>Borrowing library</th><th>Requested by</th><th>Borrowed → return</th><th>Status</th></tr></thead><tbody>${x.history.map(r=>`<tr><td>${esc(libName(r.borrowerId))}</td><td>${esc(r.requesterName||r.contact)}<div class="sub">${esc(r.requesterEmail||r.contactInfo||"")}</div></td><td>${fmtDate(r.borrowDate||r.neededBy)||"—"} → ${fmtDate(r.dueDate)||"—"}${r.reason?`<div class="sub">Reason: ${esc(r.reason)}</div>`:""}</td><td>${statusPill(r)}</td></tr>`).join("")}</tbody></table></div>`:`<p class="note">Not borrowed yet.</p>`}</div>`;
+  box.innerHTML=html}
+const copyRow=c=>({schoolId:c.school_id,copies:c.copies,outCopies:Number(c.out_copies)||0,nextDue:c.next_due||"",bin:c.bin||"",binOut:!!c.bin_out,binDue:c.bin_due||""});
 
 /* ===================== borrow request ===================== */
-function showBorrow(){const h=current;if(!h)return;const mine=myLib();const avail=Math.max(0,h.copies-h.outCopies);
-  const libs=lockedLib()?[lib(lockedLib())].filter(Boolean):schools.filter(s=>s.id!==h.schoolId);
-  openModal(`<div class="sheethead"><div><div class="eyebrow">Interlibrary loan request</div><h3 id="sheetTitle">${esc(h.title)}</h3><div class="sub">Held by ${esc(libName(h.schoolId))} · ${avail} of ${h.copies} copies available</div></div><button type="button" class="ghost sm" data-close>Close</button></div>
-   <form id="illForm" class="stack" novalidate>
-    <div class="formgrid">
-     <label class="span2">Borrowing library *<select id="i_lib">${libs.map(s=>`<option value="${esc(s.id)}"${s.id===mine?" selected":""}>${esc(s.name)}</option>`).join("")}</select></label>
-     <label>Copies needed *<input id="i_copies" type="number" min="1" max="${avail}" value="1"></label>
-     <label>Needed by<input id="i_need" type="date" value="${addDays(todayISO(),7)}"></label>
+let bins=[],myActiveBins=0;
+function borrowerSelect(){const mine=myLib();
+  return lockedLib()?`<label>Borrowing library<input value="${esc(libName(mine))}" readonly tabindex="-1"><input type="hidden" id="i_lib" value="${esc(mine)}"></label>`:
+    `<label>Borrowing library *<select id="i_lib">${schools.filter(s=>s.id!==current.schoolId).map(s=>`<option value="${esc(s.id)}"${s.id===mine?" selected":""}>${esc(s.name)}</option>`).join("")}</select></label>`}
+const contactFields=()=>`<label>Contact person *<input id="i_contact" value="${esc(ME?ME.name:"")}"></label>
+     <label>Contact no. or email<input id="i_phone" value="${esc(ME?(ME.phone||ME.email):"")}"></label>
      <label>Purpose<select id="i_purpose"><option>Class use</option><option>Reading program</option><option>Research / reference</option><option>Learner borrowing</option><option>Other</option></select></label>
-     <label>Contact person *<input id="i_contact" value="${esc(ME?ME.name:"")}"></label>
-     <label class="span2">Contact no. or email<input id="i_phone" value="${esc(ME?ME.phone:"")}"></label>
-     <label class="span2">Message to lending library<input id="i_msg"></label>
+     <label class="span2">Message to the lending library<input id="i_msg"></label>`;
+async function showBorrow(){const h=current;if(!h)return;
+  if(isHub(h.schoolId))return showBinBorrow(h);
+  let copies=[];try{copies=(await api("rec_extra",{id:h._id,copiesOnly:true})).copies||[]}catch(e){}
+  const mine=myLib();
+  let opts=copies.filter(c=>c.category!=="Library Hub"&&c.school_id!==mine).map(c=>({id:String(c.id),name:c.school_name,o:copyRow(c)}));
+  if(!opts.find(o=>o.id===h._id))opts.unshift({id:h._id,name:libName(h.schoolId),o:h});
+  const today=todayISO();
+  openModal(`<div class="sheethead"><div><div class="eyebrow">Interlibrary loan request · school library</div><h3 id="sheetTitle">${esc(h.title)}</h3><div class="sub">${esc(h.author||"")}</div></div><button type="button" class="ghost sm" data-close>Close</button></div>
+   <form id="illForm" class="stack" novalidate>
+    <fieldset><legend>1. Choose the library to borrow from</legend><div class="libpick">${opts.map(o=>{const ok=availNow(o.o);return `<label class="pick${ok?"":" off"}"><input type="radio" name="i_from" value="${o.id}"${o.id===h._id&&ok?" checked":""}${ok?"":" disabled"}><span><b>${esc(o.name)}</b><br>${availHTML(o.o)}</span></label>`}).join("")}</div></fieldset>
+    <fieldset><legend>2. Dates</legend><div class="formgrid">
+     ${borrowerSelect()}
+     <label>Copies *<input id="i_copies" type="number" min="1" value="1"></label>
+     <label>Date to borrow *<input id="i_bdate" type="date" min="${today}" value="${today}"></label>
+     <label>Date to return *<input id="i_rdate" type="date" min="${today}" value="${addDays(today,1)}"><span class="hint">1-day loan. Choose a later date only with a reason.</span></label>
+     <label class="span2" id="i_reasonL" hidden>Reason for a loan longer than 1 day *<input id="i_reason" placeholder="e.g. Used for the 3-day reading month activity"></label>
+    </div></fieldset>
+    <fieldset><legend>3. Contact</legend><div class="formgrid">${contactFields()}</div></fieldset>
+    <details><summary>Borrowing rules</summary>${RULES}</details>
+    <div class="row"><button type="submit">Send request</button><span class="note" id="i_err" role="alert"></span></div>
+   </form>`);
+  if(!$("illForm").querySelector("input[name=i_from]:checked")){const f=$("illForm").querySelector("input[name=i_from]:not([disabled])");if(f)f.checked=true}
+  syncDates()}
+function syncDates(){const b=$("i_bdate"),r=$("i_rdate");if(!b||!r)return;r.min=b.value;if(!r.value||r.value<b.value)r.value=addDays(b.value,1);
+  $("i_reasonL").hidden=!(r.value>addDays(b.value,1))}
+async function showBinBorrow(h){const mine=myLib();
+  try{const x=await api("bin_info",{school:h.schoolId,borrower:mine});bins=x.bins;myActiveBins=x.active}catch(e){toast(e.message);return}
+  const left=Math.max(0,2-myActiveBins),today=todayISO();
+  openModal(`<div class="sheethead"><div><div class="eyebrow">Interlibrary loan request · Library Hub</div><h3 id="sheetTitle">Borrow bins from ${esc(libName(h.schoolId))}</h3><div class="sub">1 month per bin · at most 2 bins per library · pick up at the hub</div></div><button type="button" class="ghost sm" data-close>Close</button></div>
+   <form id="binForm" class="stack" novalidate>
+    <div class="banner${left?"":" warn"}">Your library has <b>${myActiveBins} of 2</b> bins requested or on loan. ${left?`You can choose <b>${left}</b> more.`:"Return a bin first before requesting another."}</div>
+    <fieldset><legend>1. Choose up to ${left} bin${left===1?"":"s"}</legend><div class="libpick">${bins.length?bins.map(b=>{const ok=!b.on_loan&&left>0;return `<label class="pick${ok?"":" off"}"><input type="checkbox" name="i_bin" value="${esc(b.bin)}" data-ref="${b.ref_id}"${b.bin===h.bin&&ok?" checked":""}${ok?"":" disabled"}><span><b>${esc(b.bin)}</b> · ${b.titles} title${b.titles==1?"":"s"}, ${b.copies} cop${b.copies==1?"y":"ies"}<br>${b.on_loan?`<span class="pill poor">On loan</span> <span class="sub">back by ${fmtDate(b.due)}</span>`:`<span class="pill good">Available</span>`}${Number(b.requests)?` <span class="sub">${b.requests} request(s) waiting</span>`:""}</span></label>`}).join(""):`<p class="note">This Library Hub has not put its books into bins yet.</p>`}</div></fieldset>
+    <fieldset><legend>2. Pick-up and return</legend><div class="formgrid">
+     ${borrowerSelect()}
+     <label>Pick-up date *<input id="i_bdate" type="date" min="${today}" value="${today}"></label>
+     <label>Return date (1 month)<input id="i_rdate" type="date" value="${addMonth(today)}" readonly tabindex="-1"></label>
+     <label class="span2">Pick-up place<input value="${esc(libName(h.schoolId))}" readonly tabindex="-1"></label>
     </div>
-    <div class="row"><button type="submit">Send request</button><span class="note" id="i_err"></span></div>
+    <label class="check"><input type="checkbox" id="i_pickup"> I will pick up and return the bin(s) at ${esc(libName(h.schoolId))}.</label></fieldset>
+    <fieldset><legend>3. Contact</legend><div class="formgrid">${contactFields()}</div></fieldset>
+    <details><summary>Borrowing rules</summary>${RULES}</details>
+    <div class="row"><button type="submit"${left?"":" disabled"}>Send request</button><span class="note" id="i_err" role="alert"></span></div>
    </form>`)}
-async function submitBorrow(){const h=current;if(!h)return;
-  try{await api("ill_request",{holdingId:h._id,borrowerId:$("i_lib").value,copies:parseInt($("i_copies").value)||0,neededBy:$("i_need").value,purpose:$("i_purpose").value,contact:$("i_contact").value.trim(),contactInfo:$("i_phone").value.trim(),message:$("i_msg").value.trim()});
-    closeModal();current=null;toast("Request sent to "+libName(h.schoolId));refreshIllBadge();}
+const addMonth=iso=>{const d=new Date((iso||todayISO())+"T00:00:00");d.setMonth(d.getMonth()+1);return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10)};
+const illCommon=()=>({borrowerId:$("i_lib").value,purpose:$("i_purpose").value,contact:$("i_contact").value.trim(),contactInfo:$("i_phone").value.trim(),message:$("i_msg").value.trim(),borrowDate:$("i_bdate").value});
+async function submitBorrow(){const h=current;if(!h)return;const from=$("illForm").querySelector("input[name=i_from]:checked");
+  if(!from){$("i_err").textContent="Choose a library that has a copy available.";return}
+  const long=$("i_rdate").value>addDays($("i_bdate").value,1);
+  if(long&&$("i_reason").value.trim().length<5){$("i_err").textContent="Give the reason for a loan longer than 1 day.";$("i_reason").focus();return}
+  try{await api("ill_request",Object.assign(illCommon(),{holdingId:from.value,copies:parseInt($("i_copies").value)||0,dueDate:$("i_rdate").value,reason:long?$("i_reason").value.trim():""}));
+    closeModal();current=null;toast("Request sent");refreshIllBadge();loadCatalog()}
+  catch(e){$("i_err").textContent=e.message}}
+async function submitBins(){const h=current;if(!h)return;const picked=[...$("binForm").querySelectorAll("input[name=i_bin]:checked")];
+  if(!picked.length){$("i_err").textContent="Choose at least one bin.";return}
+  if(picked.length>Math.max(0,2-myActiveBins)){$("i_err").textContent="Only 2 bins per library at a time.";return}
+  if(!$("i_pickup").checked){$("i_err").textContent="Please confirm that you will pick up the bin(s) at the hub.";return}
+  try{await api("ill_request_bins",Object.assign(illCommon(),{lenderId:h.schoolId,bins:picked.map(b=>({bin:b.value,ref:b.dataset.ref}))}));
+    closeModal();current=null;toast(`Request sent for ${picked.length} bin${picked.length>1?"s":""}`);refreshIllBadge();loadCatalog()}
   catch(e){$("i_err").textContent=e.message}}
 
 /* ===================== loans ===================== */
@@ -607,16 +700,19 @@ function illRow(r,side){const mine=myLib();
   const borrowActs=canBorrow&&r.status==="Requested"?`<button class="ghost sm" data-ill="cancel" data-id="${r._id}">Cancel request</button>`:"";
   const act=side==="lend"?lendActs:side==="borrow"?borrowActs:lendActs+borrowActs;
   const party=side==="all"?`${esc(libName(r.lenderId))} → ${esc(libName(r.borrowerId))}`:esc(libName(side==="lend"?r.borrowerId:r.lenderId));
-  return `<tr><td>${fmtDate(r.requestedAt)}</td><td><b>${esc(r.title)}</b><div class="sub call">${esc(r.callNo||"")} ${esc(r.accessionNo||"")}</div>${r.message?`<div class="sub">“${esc(r.message)}”</div>`:""}</td><td>${party}<div class="sub">${esc(r.contact||"")}${r.contactInfo?" · "+esc(r.contactInfo):""}</div></td><td class="num">${r.copies}</td><td>${esc(r.purpose||"")}<div class="sub">Needed by ${fmtDate(r.neededBy)||"—"}</div></td><td>${r.dueDate?fmtDate(r.dueDate):"—"}${r.returnedAt?`<div class="sub">Returned ${fmtDate(r.returnedAt)}</div>`:""}</td><td>${statusPill(r)}${r.note?`<div class="sub">${esc(r.note)}</div>`:""}</td><td><div class="actions" id="act-${r._id}">${act}</div></td></tr>`}
+  const item=r.loanType==="bin"?`<span class="pill info">Library Hub bin</span> <b>${esc(r.title||r.bin)}</b>${r.pickup?`<div class="sub">${esc(r.pickup)}</div>`:""}`:`<b>${esc(r.title)}</b><div class="sub call">${esc(r.callNo||"")} ${esc(r.accessionNo||"")}</div>`;
+  const who=`${esc(r.requesterName||r.contact||"")}${r.requesterEmail?`<div class="sub"><a href="mailto:${esc(r.requesterEmail)}">${esc(r.requesterEmail)}</a></div>`:""}${r.contactInfo&&r.contactInfo!==r.requesterEmail?`<div class="sub">${esc(r.contactInfo)}</div>`:""}`;
+  const days=r.borrowDate&&r.dueDate?Math.round((new Date(r.dueDate)-new Date(r.borrowDate))/864e5):null;
+  return `<tr><td>${fmtDate(r.requestedAt)}</td><td>${item}${r.purpose?`<div class="sub">${esc(r.purpose)}${r.copies>1?` · ${r.copies} copies`:""}</div>`:""}${r.message?`<div class="sub">“${esc(r.message)}”</div>`:""}</td><td>${party}</td><td>${who}</td><td><b>${fmtDate(r.borrowDate||r.neededBy)||"—"}</b> → <b>${fmtDate(r.dueDate)||"—"}</b>${days!=null?`<div class="sub">${r.loanType==="bin"?"1 month":days===1?"1 day":days+" days"}</div>`:""}${r.reason?`<div class="sub">Reason: ${esc(r.reason)}</div>`:""}${r.returnedAt?`<div class="sub">Returned ${fmtDate(r.returnedAt)}</div>`:""}</td><td>${statusPill(r)}${r.note?`<div class="sub">${esc(r.note)}</div>`:""}</td><td><div class="actions" id="act-${r._id}">${act}</div></td></tr>`}
 function illTable(list,side,title,emptyMsg){const rank=r=>isOverdue(r)?0:r.status==="Requested"?1:r.status==="Approved"?2:r.status==="Lent"?3:4;
   const sorted=list.slice().sort((a,b)=>rank(a)-rank(b)||String(b.requestedAt).localeCompare(String(a.requestedAt)));
-  return `<div class="stack"><h3>${title}</h3>`+(sorted.length?`<div class="tablebox"><table><thead><tr><th>Requested</th><th>Title</th><th>${side==="lend"?"Borrowing library":side==="borrow"?"Lending library":"Lender → borrower"}</th><th class="num">Copies</th><th>Purpose</th><th>Due date</th><th>Status</th><th></th></tr></thead><tbody>${sorted.map(r=>illRow(r,side)).join("")}</tbody></table></div>`:`<div class="panel empty">${emptyMsg}</div>`)+`</div>`}
-async function loadLoans(){const out=$("illOut");$("illLibL").hidden=!isAdmin();
+  return `<div class="stack"><h3>${title}</h3>`+(sorted.length?`<div class="tablebox"><table><thead><tr><th>Requested</th><th>Book or bin</th><th>${side==="lend"?"Borrowing library":side==="borrow"?"Lending library":"Lender → borrower"}</th><th>Requested by</th><th>Date borrowed → to return</th><th>Status</th><th></th></tr></thead><tbody>${sorted.map(r=>illRow(r,side)).join("")}</tbody></table></div>`:`<div class="panel empty">${emptyMsg}</div>`)+`</div>`}
+async function loadLoans(){const out=$("illOut");if($("rulesOut")&&!$("rulesOut").innerHTML)$("rulesOut").innerHTML=RULES;$("illLibL").hidden=!isAdmin();
   if(!ME){out.innerHTML=`<div class="panel empty"><strong>Log in to see interlibrary loans</strong><a href="#account">Log in</a> with your librarian account.</div>`;return}
   if(!canAdd()){out.innerHTML=`<div class="panel empty"><strong>Waiting for approval</strong>You can use interlibrary loans once the division librarian approves your account.</div>`;return}
   const l=lockedLib()||$("illLib").value;
   try{illRows=(await api("ill_list",{school:l})).rows}catch(e){out.innerHTML=`<div class="panel empty">${esc(e.message)}</div>`;return}
-  if(!illRows.length){out.innerHTML=`<div class="panel empty"><strong>No interlibrary loans yet</strong>When a library requests a title from another library, it shows here for both of them.</div>`;return}
+  if(!illRows.length){out.innerHTML=`<div class="panel empty"><strong>No interlibrary loans yet</strong>Find a book in <a href="#catalog">Search catalog</a>, open it, and choose <b>Request to borrow</b> (school libraries) or <b>Borrow this bin</b> (Library Hubs).</div>`;return}
   if(!l){out.innerHTML=illTable(illRows,"all","All interlibrary loans in the division","");return}
   out.innerHTML=illTable(illRows.filter(r=>r.lenderId===l),"lend",`Requests to borrow from ${esc(libName(l))}`,"No other library has asked to borrow from you yet.")+
     illTable(illRows.filter(r=>r.borrowerId===l),"borrow",`${esc(libName(l))}'s requests to other libraries`,"You haven't requested any books from other libraries yet.");}
@@ -661,10 +757,35 @@ async function loadReport(){const p=reportParams();const acq=p.type==="acq";$("r
   try{let r;
     if(p.type==="profile"){const pr=await api("profile",p);const P=profileData(pr.rows);
       r={title:"Collection Profile by Subject",cols:["Rank","Subject / Classification","Titles","Copies","Share of Collection"],rows:P.total?P.rows.map((x,i)=>[i+1,x.sub,x.titles,x.copies,x.copies?x.pct.toFixed(1)+"%":"none"]):[],scopeName:pr.name,chart:P};}
+    else if(p.type==="util"||p.type==="size")r=await utilReport(p);
     else r=await api("report",p);
     lastReport=r;
-    $("reportOut").innerHTML=reportHeadHTML(r.title,r.scopeName)+(r.chart&&r.chart.total?profileHTML(r.chart)+"<br>":"")+reportTableHTML(r);
+    $("reportOut").innerHTML=reportHeadHTML(r.title,r.scopeName)+(r.html||"")+(r.chart&&r.chart.total?profileHTML(r.chart)+"<br>":"")+reportTableHTML(r);
   }catch(e){$("reportOut").innerHTML=`<div class="empty">${esc(e.message)}</div>`}}
+function barChart(title,items,unit,note){
+  if(!items.length)return `<div class="chart"><h4>${esc(title)}</h4><p class="note">No data yet. ${note||""}</p></div>`;
+  const max=Math.max(1,...items.map(i=>i.value));
+  return `<div class="chart"><h4>${esc(title)}</h4><div class="prof">${items.map((i,k)=>`<div class="prow${k<3&&i.value?" top":""}${i.value?"":" none"}"><span class="pn">${esc(i.label)}${i.sub?`<small> · ${esc(i.sub)}</small>`:""}</span><span class="ptrack"><i style="width:${(i.value/max*100).toFixed(1)}%"></i></span><span class="pv">${Number(i.value).toLocaleString()} ${esc(i.value===1?({copies:"copy"}[unit]||unit.replace(/s$/,"")):unit)}</span></div>`).join("")}</div>${note?`<p class="note">${note}</p>`:""}</div>`}
+const kpis=list=>`<div class="kpis">${list.map(([b,s])=>`<div class="stat"><b>${b}</b><span>${s}</span></div>`).join("")}</div>`;
+async function utilReport(p){const u=await api("util",p),sc=u.schools||[],scope=scopeName(p),one=!!p.school;
+  if(p.type==="size"){const list=sc.slice().sort((a,b)=>b.copies-a.copies||b.titles-a.titles||a.name.localeCompare(b.name));
+    const big=list[0],small=list.filter(s=>s.copies>0).slice(-1)[0],none=list.filter(s=>!s.copies);
+    const html=list.length?`<div class="pfind"><div><b>Largest collection</b><br>${big&&big.copies?`${esc(big.name)}: ${big.copies.toLocaleString()} copies, ${big.titles.toLocaleString()} titles`:"None yet"}</div><div class="low"><b>Smallest collection (with books)</b><br>${small?`${esc(small.name)}: ${small.copies.toLocaleString()} copies, ${small.titles.toLocaleString()} titles`:"None yet"}</div>${none.length?`<div class="low"><b>No books encoded yet (${none.length})</b><br>${none.slice(0,8).map(s=>esc(s.name)).join(", ")}${none.length>8?" …":""}</div>`:""}</div>`+
+      barChart("Copies per library",list.slice(0,20).map(s=>({label:s.name,sub:s.category,value:Number(s.copies)})),"copies",list.length>20?"Top 20 shown. The full list is in the table below.":""):"";
+    return{title:"Libraries by Size of Collection",scopeName:scope,html,cols:["Rank","Library","Library Type","District","Titles","Copies"],rows:list.map((s,i)=>[i+1,s.name,s.category,s.district,Number(s.titles),Number(s.copies)])}}
+  const pct=u.titles?Math.round(u.used/u.titles*100):0;
+  const borrowers=sc.filter(s=>s.borrowed>0).sort((a,b)=>b.borrowed-a.borrowed).slice(0,10);
+  const visited=sc.filter(s=>s.views>0).sort((a,b)=>b.views-a.views).slice(0,10);
+  const lenders=sc.filter(s=>s.lent>0).sort((a,b)=>b.lent-a.lent).slice(0,10);
+  const top=u.top||[],least=u.least||[];
+  const html=kpis([[Number(u.loans).toLocaleString(),"loan requests (not counting declined or cancelled)"],[`${Number(u.used).toLocaleString()} / ${Number(u.titles).toLocaleString()}`,`titles borrowed at least once (${pct}% utilized)`],[Number(u.views).toLocaleString(),"times records were opened"]])+
+    `<div class="charts">`+
+    (one?"":barChart("Schools that borrow the most",borrowers.map(s=>({label:s.name,sub:s.category,value:Number(s.borrowed)})),"loans"))+
+    (one?"":barChart("Most visited collections",visited.map(s=>({label:s.name,sub:s.category,value:Number(s.views)})),"visits","A visit is counted each time someone opens a book record."))+
+    (one?"":barChart("Collections borrowed from the most",lenders.map(s=>({label:s.name,sub:s.category,value:Number(s.lent)})),"loans"))+
+    barChart(one?`Most utilized titles in ${scope}`:"Most utilized titles (division)",top.map(t=>({label:t.title,sub:t.school_name+(t.bin?" · "+t.bin:""),value:Number(t.loans)})),"loans")+`</div>`+
+    `<h4>${one?`Least utilized titles in ${esc(scope)}`:"Least utilized titles (division)"}</h4><p class="note">Titles never borrowed come first, then those opened least. Consider promoting, lending or weeding them.</p>`;
+  return{title:"Utilization and Borrowing Statistics",scopeName:scope,html,cols:["Rank","Title","Author","Library","Bin","Times Borrowed","Record Visits"],rows:least.map((t,i)=>[i+1,t.title,t.author||"",t.school_name,t.bin||"",Number(t.loans),Number(t.views)])}}
 function downloadText(filename,text,type){const blob=new Blob([text],{type:type||"text/plain;charset=utf-8"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=filename;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}
 const PRINT_CSS=`body{font-family:Arial,Helvetica,sans-serif;color:#000;background:#fff;margin:12mm;font-size:11px}.reporthead{text-align:center;margin-bottom:10px}.reporthead h3{font-size:15px;margin:6px 0 2px}
 table{border-collapse:collapse;width:100%}th,td{border:1px solid #888;padding:3px 5px;text-align:left;vertical-align:top}th{background:#eee}td.num{text-align:right}.note{color:#444}.tablebox{overflow:visible}
@@ -672,12 +793,12 @@ table{border-collapse:collapse;width:100%}th,td{border:1px solid #888;padding:3p
 .prof{display:flex;flex-direction:column;gap:4px}.prow{display:grid;grid-template-columns:230px 1fr 90px;gap:8px;align-items:center}.ptrack{height:13px;background:#e9eefa;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .ptrack i{display:block;height:100%;background:#1f3f8f;-webkit-print-color-adjust:exact;print-color-adjust:exact}.prow.top .ptrack i{background:#b98a1e}.pv{text-align:right}.prow.none .pn,.prow.none .pv{color:#b3362d}
 .labels{display:flex;flex-wrap:wrap;gap:4mm}.label{width:62mm;border:1px dashed #999;padding:2mm 3mm;page-break-inside:avoid;overflow:hidden}.lt{font-size:9px;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lc{font-family:monospace;font-size:9px}.label svg{width:100%;height:auto}
-.sign{margin-top:36px;display:flex;justify-content:space-between}.sign div{width:40%;border-top:1px solid #000;text-align:center;padding-top:4px}.empty{text-align:center;padding:20px}@page{margin:10mm}`;
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0}.stat{border:1px solid #999;padding:6px}.stat b{display:block;font-size:16px}.charts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:10px 0}.chart{page-break-inside:avoid}.chart h4{margin:0 0 6px}.prow small{color:#555}.sign{margin-top:36px;display:flex;justify-content:space-between}.sign div{width:40%;border-top:1px solid #000;text-align:center;padding-top:4px}.empty{text-align:center;padding:20px}@page{margin:10mm}`;
 function printPage(title,body){const w=window.open("","_blank");if(!w){toast("Allow pop-ups for this site so the page can open the print view.");return}
   w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title><style>${PRINT_CSS}</style></head><body>${body}<script>window.onload=function(){setTimeout(function(){window.print()},300)}<\/script></body></html>`);w.document.close();}
 const SIGN=`<div class="sign"><div>Prepared by</div><div>Noted by: Division Librarian II</div></div>`;
 function printReport(){const r=lastReport;if(!r){toast("Open a report first.");return}
-  printPage(r.title,reportHeadHTML(r.title,r.scopeName)+(r.chart&&r.chart.total?profileHTML(r.chart)+"<br>":"")+reportTableHTML(r)+SIGN)}
+  printPage(r.title,reportHeadHTML(r.title,r.scopeName)+(r.html||"")+(r.chart&&r.chart.total?profileHTML(r.chart)+"<br>":"")+reportTableHTML(r)+SIGN)}
 function downloadCSV(){const r=lastReport;if(!r){toast("Open a report first.");return}const c=v=>`"${String(v??"").replace(/"/g,'""')}"`;
   const lines=[[DIVISION],[r.title],[r.scopeName+" - as of "+new Date().toLocaleDateString("en-PH")],[],r.cols,...r.rows].map(row=>row.map(c).join(","));
   downloadText(r.title.replace(/[^\w]+/g,"-")+".csv","﻿"+lines.join("\r\n"),"text/csv;charset=utf-8")}
@@ -692,9 +813,24 @@ async function downloadMarc(){const r=await fullRecords();if(!r)return;if(!r.row
 
 /* ===================== libraries ===================== */
 function renderLibraries(){
+  const mine=isApproved()?lib(ME.schoolId):null;
+  $("schoolWrap").hidden=!isAdmin();
   $("schoolForm").querySelectorAll("input,select,button").forEach(el=>el.disabled=!isAdmin());
-  $("schoolNote").textContent=isAdmin()?"Add each Library Hub and school library once. Librarians choose their library when they sign up.":"Only the division librarian can add or change libraries.";
-  if(!schools.length){$("schoolList").innerHTML=`<div class="empty"><strong>No libraries registered</strong>${isAdmin()?"Start with the Agusan del Norte Library Hub, then add each school library.":"The division librarian will add the libraries."}</div>`;return}
+  $("schoolNote").textContent="Use this only for a library whose librarian has no account yet. Normally you don't need it.";
+  const intro=$("libIntro");
+  if(isAdmin())intro.innerHTML=`<h2>Libraries</h2><p><b>You don't need to type the libraries yourself.</b> Each librarian types their School ID, school name and district when they <b>sign up</b>. When you click <b>Approve</b> in <a href="#account">Librarian accounts</a>, their library is added here automatically. After that, the librarian can complete their own library details here.</p>`;
+  else if(mine)intro.innerHTML=`<h2>My library</h2><p class="note">Complete or update your library's details. Only you and the division librarian can change these.</p>
+    <form class="stack" id="myLibForm" novalidate><div class="formgrid">
+      <label>Library / School ID<input value="${esc(mine.id)}" readonly tabindex="-1"></label>
+      <label class="span2">Library name *<input id="ml_name" value="${esc(mine.name)}"></label>
+      <label>Library type *<select id="ml_cat">${optList(CATS,mine.category)}</select></label>
+      <label>District *<input id="ml_district" value="${esc(mine.district)}"></label>
+      <label>Librarian / teacher-librarian<input id="ml_lib" value="${esc(mine.librarian||ME.name||"")}"></label>
+      <label>Enrollment or learners served<input id="ml_enroll" type="number" min="0" value="${mine.enrollment||""}"></label>
+    </div><div class="row"><button type="submit">Save my library</button><span class="note" id="ml_msg" role="alert"></span></div></form>`;
+  else if(ME&&ME.status==="pending")intro.innerHTML=`<h2>Libraries</h2><p>Your account is <b>waiting for approval</b>. Once the division librarian approves you, your library is added here and you can complete its details.</p>`;
+  else intro.innerHTML=`<h2>Libraries</h2><p>School libraries and library hubs in Project LINK. Librarians: <a href="#account">sign up</a> with your School ID. Your library is added when the division librarian approves your account.</p>`;
+  if(!schools.length){$("schoolList").innerHTML=`<div class="empty"><strong>No libraries yet</strong>Libraries appear here when the division librarian approves the librarians who signed up.</div>`;return}
   $("schoolList").innerHTML=`<table><thead><tr><th>ID</th><th>Library</th><th>Type</th><th>District</th><th>Librarian</th><th class="num">Learners</th>${isAdmin()?"<th></th>":""}</tr></thead><tbody>`+
    schools.slice().sort((a,b)=>(a.category==="Library Hub"?0:1)-(b.category==="Library Hub"?0:1)||a.district.localeCompare(b.district)||a.name.localeCompare(b.name)).map(s=>`<tr><td class="call">${esc(s.id)}</td><td>${esc(s.name)}</td><td>${catTag(s.category)}</td><td>${esc(s.district)}</td><td>${esc(s.librarian||"")}</td><td class="num">${s.enrollment||""}</td>${isAdmin()?`<td><div class="actions" id="sact-${esc(s.id)}"><button class="ghost sm" data-sedit="${esc(s.id)}">Edit</button><button class="danger sm" data-sdel="${esc(s.id)}">Remove</button></div></td>`:""}</tr>`).join("")+`</tbody></table>`;}
 
@@ -721,6 +857,7 @@ function sidCheck(p){const el=$(p+"_sid");if(!el)return;const id=el.value.trim()
   $(p+"_sidnote").innerHTML=!id?"Type your 6-digit DepEd School ID (or the Library Hub ID).":s?`<span class="good">✓ Found: <b>${esc(s.name)}</b> · ${esc(s.district)}</span>`:`<span class="fair">New school. Type the school name and district below; the division librarian adds it when approving you.</span>`;}
 const PRIVACY=`I agree that Project LINK of SDO Agusan del Norte collects my name, sex, school, email, mobile number and username to manage my librarian account and the union catalog, in line with the Data Privacy Act of 2012 (RA 10173). Only the division librarian can see my email and mobile number.`;
 function loginCard(){return `<div class="authwrap"><div class="panel authcard stack">
+  <button type="button" class="signupbtn top" data-auth="register">New here? Create an account (Sign up) →</button>
   <div class="authhead"><div class="eyebrow">Department of Education · SDO Agusan del Norte</div><h2>Project LINK</h2><div class="sub">Union Catalog of School Libraries</div></div>
   <form id="loginForm" class="stack" novalidate>
    <label>Email<input id="l_login" type="email" autocomplete="username" placeholder="name@deped.gov.ph"></label>
@@ -728,7 +865,7 @@ function loginCard(){return `<div class="authwrap"><div class="panel authcard st
    <button type="submit">Log in</button><span class="note" id="l_msg" role="alert"></span>
   </form>
   <p class="note">Forgot your password? Type your email above, then <button type="button" class="link" id="forgotBtn">send me a reset link</button>.</p>
-  <p>No account yet? <button type="button" class="link" data-auth="register">Create an account</button></p>
+  <div class="signupbox"><b>New librarian? No account yet?</b><span>Sign up first. The division librarian will approve you.</span><button type="button" class="signupbtn" data-auth="register">Create an account (Sign up)</button></div>
  </div></div>`}
 function registerForm(){return `<form class="panel stack" id="regForm" novalidate>
   <div class="row" style="justify-content:space-between;align-items:center"><h2>Create an account</h2><button type="button" class="ghost sm" data-auth="login">Back to log in</button></div>
@@ -797,7 +934,7 @@ async function loadUsers(){try{users=(await api("users_list")).users}catch(e){$(
     return `<tr><td><b>${esc(u.name)}</b><div class="sub">${esc([u.userType,u.sex].filter(Boolean).join(" · "))}</div><div class="sub">${esc(u.designation||"")}</div></td><td>${libCell}</td><td style="overflow-wrap:anywhere">${esc(u.email)}<div class="sub">${esc(u.phone)}</div></td><td class="call">${esc(u.username||"—")}</td><td>${fmtDate(u.createdAt)}</td><td><span class="pill ${u.status==="approved"?"good":u.status==="pending"?"fair":"poor"}">${u.status==="approved"?"Approved":u.status==="pending"?"Pending":"Not approved"}</span>${u.mustChange?`<div class="sub">temporary password</div>`:""}<div class="sub">${u.records.toLocaleString()} records</div></td><td><div class="actions" id="acct-${u.id}">${acts}<button class="ghost sm" data-acct="reset" data-uid="${u.id}">Reset password</button><button class="danger sm" data-acct="remove" data-uid="${u.id}">Delete</button></div></td></tr>`}).join("");
   const tab=(k,l,n)=>`<button type="button" data-ufilter="${k}" aria-pressed="${userFilter===k}">${l} (${n})</button>`;
   $("usersOut").innerHTML=`<div class="panel stack"><div class="row" style="justify-content:space-between;align-items:center"><h2>Librarian accounts</h2><div class="seg" role="group" aria-label="Filter accounts">${tab("pending","Pending",pend)}${tab("approved","Approved",appr)}${tab("rejected","Not approved",rej)}${tab("all","All",all.length)}</div></div>
-    <p class="note">Librarians create their own account with their School ID. If their school is new, <b>Approve</b> lets you add it to Libraries in one click. For a forgotten password, choose <b>Reset password</b> and give them the temporary password.</p></div>`+
+    <p class="note">Librarians create their own account with their School ID. If their school is new, <b>Approve</b> lets you add it to Libraries in one click. For a forgotten password, choose <b>Reset password</b> to email them a link for a new password.</p></div>`+
     (list.length?`<div class="tablebox"><table><thead><tr><th>Name</th><th>School</th><th>Email / mobile</th><th>Username</th><th>Registered</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`:`<div class="panel empty"><strong>${userFilter==="pending"?"No sign-ups waiting":"No accounts here"}</strong>Send your librarians the link and ask them to choose <b>Create an account</b>.</div>`);}
 
 /* ===================== home dashboard ===================== */
@@ -820,7 +957,7 @@ async function loadHome(){const out=$("homeOut");
    <div class="split"><div class="stack"><h3>Your collection by subject</h3><div class="panel">${profileHTML(P)}</div></div><div class="stack"><h3>Recently added</h3>${recent(h.recent)}</div></div>`;}
 
 /* ===================== add / edit ===================== */
-const F={school:"schoolId",acc:"accessionNo",call:"callNo",title:"title",author:"author",edition:"edition",place:"place",publisher:"publisher",year:"year",pages:"pages",isbn:"isbn",lang:"language",subject:"subject",grade:"grade",type:"type",copies:"copies",cond:"condition",fund:"fund",date:"dateReceived",dr:"drNo",remarks:"remarks"};
+const F={school:"schoolId",acc:"accessionNo",call:"callNo",title:"title",author:"author",edition:"edition",place:"place",publisher:"publisher",year:"year",pages:"pages",isbn:"isbn",lang:"language",subject:"subject",grade:"grade",type:"type",copies:"copies",cond:"condition",fund:"fund",date:"dateReceived",dr:"drNo",remarks:"remarks",bin:"bin"};
 function renderAdd(){const ok=canAdd();$("addGate").hidden=ok;$("addArea").hidden=!ok;
   if(!ok)$("addGate").innerHTML=!ME?`<strong>Log in to add resources</strong><a href="#account">Log in or sign up</a>. The division librarian approves new librarians.`:ME.status==="pending"?"<strong>Waiting for approval</strong>The division librarian will approve your account soon. You can add resources once you're approved.":"<strong>Your account is not approved</strong>Contact the division librarian.";
   else if(!editing&&!$("h_school").value&&myLib())$("h_school").value=myLib();}
@@ -909,7 +1046,7 @@ document.addEventListener("click",async e=>{const t=e.target.closest("button");i
   if(ds.sback){renderLibraries();return}
   if(ds.sdelok){try{schools=(await api("school_delete",{id:ds.sdelok})).schools;libOptions();renderLibraries();toast("Library removed")}catch(x){toast(x.message)}return}
   if(ds.ill){const id=ds.id,box=$("act-"+id),r=illRows.find(x=>x._id===id);if(!r)return;
-    if(ds.ill==="approve"){box.innerHTML=`<label style="flex-direction:row;align-items:center;gap:6px">Due <input type="date" id="due-${id}" value="${addDays(r.neededBy&&r.neededBy>todayISO()?r.neededBy:todayISO(),14)}"></label><button class="sm" data-ill="approve-ok" data-id="${id}">Confirm</button><button class="ghost sm" data-ill="back" data-id="${id}">Back</button>`;return}
+    if(ds.ill==="approve"){box.innerHTML=`<label style="flex-direction:row;align-items:center;gap:6px">Return by <input type="date" id="due-${id}" value="${r.dueDate||addDays(r.borrowDate||todayISO(),1)}"></label><button class="sm" data-ill="approve-ok" data-id="${id}">Confirm</button><button class="ghost sm" data-ill="back" data-id="${id}">Back</button>`;return}
     if(ds.ill==="approve-ok"){illDo(id,"approve",{dueDate:$("due-"+id).value});return}
     if(ds.ill==="decline"){box.innerHTML=`<input id="why-${id}" placeholder="Reason (optional)"><button class="danger sm" data-ill="decline-ok" data-id="${id}">Decline request</button><button class="ghost sm" data-ill="back" data-id="${id}">Back</button>`;return}
     if(ds.ill==="decline-ok"){illDo(id,"decline",{note:$("why-"+id).value.trim()});return}
@@ -939,6 +1076,7 @@ document.addEventListener("click",async e=>{const t=e.target.closest("button");i
 });
 document.addEventListener("submit",async e=>{const f=e.target;
   if(f.id==="illForm"){e.preventDefault();submitBorrow();return}
+  if(f.id==="binForm"){e.preventDefault();submitBins();return}
   if(f.id==="loginForm"){e.preventDefault();$("l_msg").textContent="Logging in…";
     try{ME=(await api("login",{login:$("l_login").value.trim(),password:$("l_pass").value})).me;const r=await api("me");schools=r.schools;applyRole();toast("Welcome, "+(ME.firstName||ME.name));location.hash=ME.mustChange?"account":"home";route()}
     catch(x){$("l_msg").textContent=x.message}return}
@@ -958,11 +1096,20 @@ document.addEventListener("submit",async e=>{const f=e.target;
   if(f.id==="pwForm"){e.preventDefault();if($("p_new").value!==$("p_new2").value){$("p_msg").textContent="The two new passwords are not the same.";return}
     try{ME=(await api("change_password",{old:$("p_old")?$("p_old").value:"",new:$("p_new").value})).me;applyRole();toast("Password changed");renderAccount()}
     catch(x){$("p_msg").textContent=x.message}return}
+  if(f.id==="myLibForm"){e.preventDefault();$("ml_msg").textContent="Saving…";
+    try{schools=(await api("my_school_save",{name:$("ml_name").value.trim(),category:$("ml_cat").value,district:$("ml_district").value.trim(),librarian:$("ml_lib").value.trim(),enrollment:parseInt($("ml_enroll").value)||0})).schools;
+      libOptions();renderLibraries();toast("Library details saved")}
+    catch(x){$("ml_msg").textContent=x.message}return}
   if(f.id==="schoolForm"){e.preventDefault();if(!isAdmin())return;
     try{schools=(await api("school_save",{id:$("s_id").value.trim(),name:$("s_name").value.trim(),category:$("s_cat").value,district:$("s_district").value.trim(),librarian:$("s_lib").value.trim(),enrollment:parseInt($("s_enroll").value)||0})).schools;
       libOptions();renderLibraries();$("schoolForm").reset();$("s_msg").textContent="";toast("Library saved")}
     catch(x){$("s_msg").textContent=x.message}return}
 });
+document.addEventListener("change",e=>{const id=e.target.id;
+  if((id==="i_bdate"||id==="i_rdate")&&$("illForm"))syncDates();
+  if(id==="i_bdate"&&$("binForm"))$("i_rdate").value=addMonth($("i_bdate").value);
+  if(e.target.name==="i_bin"&&$("binForm")){const on=[...$("binForm").querySelectorAll("input[name=i_bin]:checked")].length,left=Math.max(0,2-myActiveBins);
+    if(on>left){e.target.checked=false;toast(`Only ${left} more bin${left===1?"":"s"} allowed for your library.`)}}});
 document.addEventListener("input",e=>{if(e.target.id==="g_sid")sidCheck("g");if(e.target.id==="m_sid")sidCheck("m");});
 $("q").addEventListener("input",searchSoon);
 ["fCat","fSchool","fSubject","fGrade"].forEach(id=>$(id).addEventListener("change",()=>{page=0;loadCatalog()}));
@@ -992,11 +1139,11 @@ function chk(r){if(r&&r.error){const m=r.error.message||String(r.error);
   if(/duplicate key.*username/i.test(m))throw new Error("This username is already taken. Please choose another.");
   if(/Failed to fetch|NetworkError/i.test(m))throw new Error("Can't reach the database. Check your internet connection.");
   throw new Error(m.replace(/^ERROR:\s*/,""))}return r?r.data:null}
-function hout(r){if(!r)return null;return{_id:String(r.id),schoolId:r.school_id,accessionNo:r.accession_no,callNo:r.call_no||"",title:r.title,author:r.author||"",edition:r.edition||"",place:r.place||"",publisher:r.publisher||"",year:r.pub_year||"",pages:r.pages||"",isbn:r.isbn||"",language:r.lang||"",subject:r.subject||"",grade:r.grade||"",type:r.rtype||"Book",copies:r.copies||1,condition:r.cond||"Good",fund:r.fund||"",dateReceived:r.date_received||"",drNo:r.dr_no||"",remarks:r.remarks||"",barcodes:Array.isArray(r.barcodes)?r.barcodes:[],cover:r.cover_url||"",createdAt:r.created_at,updatedAt:r.updated_at,createdBy:r.created_by,outCopies:0,encodedBy:""}}
+function hout(r){if(!r)return null;return{_id:String(r.id),schoolId:r.school_id,accessionNo:r.accession_no,callNo:r.call_no||"",title:r.title,author:r.author||"",edition:r.edition||"",place:r.place||"",publisher:r.publisher||"",year:r.pub_year||"",pages:r.pages||"",isbn:r.isbn||"",language:r.lang||"",subject:r.subject||"",grade:r.grade||"",type:r.rtype||"Book",copies:r.copies||1,condition:r.cond||"Good",fund:r.fund||"",dateReceived:r.date_received||"",drNo:r.dr_no||"",remarks:r.remarks||"",bin:r.bin||"",barcodes:Array.isArray(r.barcodes)?r.barcodes:[],cover:r.cover_url||"",createdAt:r.created_at,updatedAt:r.updated_at,createdBy:r.created_by,outCopies:0,encodedBy:""}}
 function meOut(p,email){if(!p)return null;return{id:p.id,name:p.name||p.email,designation:p.designation||"",email:p.email||email||"",phone:p.phone||"",schoolId:p.school_id||"",schoolOther:p.req_school_id&&!p.school_id?(p.req_school_name||""):"",role:p.role,status:p.status,mustChange:false,
   username:p.username||"",firstName:p.first_name||"",middleName:p.middle_name||"",lastName:p.last_name||"",extName:p.ext_name||"",sex:p.sex||"",userType:p.user_type||"",district:p.req_district||"",
   reqSchoolId:p.req_school_id||"",reqSchoolName:p.req_school_name||"",reqCategory:p.req_category||"",reqDistrict:p.req_district||"",reqEnrollment:p.req_enrollment||0,createdAt:p.created_at,records:p.records||0}}
-function illOut(r){return{_id:String(r.id),holdingId:String(r.holding_id),title:r.title,callNo:r.call_no,accessionNo:r.accession_no,lenderId:r.lender_id,borrowerId:r.borrower_id,copies:r.copies,neededBy:r.needed_by||"",purpose:r.purpose||"",contact:r.contact||"",contactInfo:r.contact_info||"",message:r.message||"",status:r.status,dueDate:r.due_date||"",note:r.note||"",requestedAt:r.requested_at,lentAt:r.lent_at||"",returnedAt:r.returned_at||"",history:r.history||[]}}
+function illOut(r){return{loanType:r.loan_type||"item",bin:r.bin||"",borrowDate:r.borrow_date||"",reason:r.reason||"",requesterName:r.requester_name||"",requesterEmail:r.requester_email||"",pickup:r.pickup||"",_id:String(r.id),holdingId:String(r.holding_id),title:r.title,callNo:r.call_no,accessionNo:r.accession_no,lenderId:r.lender_id,borrowerId:r.borrower_id,copies:r.copies,neededBy:r.needed_by||"",purpose:r.purpose||"",contact:r.contact||"",contactInfo:r.contact_info||"",message:r.message||"",status:r.status,dueDate:r.due_date||"",note:r.note||"",requestedAt:r.requested_at,lentAt:r.lent_at||"",returnedAt:r.returned_at||"",history:r.history||[]}}
 function needLogin(){if(!ME)throw new Error("Please log in first.")}
 function needAdmin(){needLogin();if(ME.role!=="admin")throw new Error("Only the division librarian can do this.")}
 function needLib(){needLogin();if(ME.role!=="admin"&&ME.status!=="approved")throw new Error("Your account is not approved yet.")}
@@ -1011,8 +1158,10 @@ async function ensureProfile(){const s=await session();if(!s)return null;
     if(r.error&&/username/i.test(r.error.message)){delete row.username;p=chk(await sb.from("profiles").insert(row).select().single())}else p=chk(r);}
   return p}
 async function outFor(rows){const ids=rows.map(r=>Number(r.id));if(!ids.length)return rows.map(hout);
-  const o=chk(await sb.rpc("copies_out",{ids}))||[];const m={};o.forEach(x=>m[String(x.holding_id)]=Number(x.out_copies));
-  return rows.map(r=>{const h=hout(r);h.outCopies=m[h._id]||0;return h})}
+  const m={};let ls=await sb.rpc("loan_status",{ids});
+  if(ls.error){const o=chk(await sb.rpc("copies_out",{ids}))||[];o.forEach(x=>m[String(x.holding_id)]={out_copies:x.out_copies})}
+  else (ls.data||[]).forEach(x=>m[String(x.holding_id)]=x);
+  return rows.map(r=>{const h=hout(r),x=m[h._id]||{};h.outCopies=Number(x.out_copies)||0;h.nextDue=x.next_due||"";h.binOut=!!x.bin_out;h.binDue=x.bin_due||"";return h})}
 async function fetchAll(params){const out=[];for(let off=0;off<20000;off+=1000){const rows=chk(await sb.rpc("catalog_search",Object.assign({p_limit:1000,p_offset:off},params)))||[];out.push(...rows);if(rows.length<1000)break}return out}
 function dataUrlToBlob(u){const [h,b]=u.split(",");const mime=(/data:([^;]+)/.exec(h)||[])[1]||"image/jpeg";const bin=atob(b);const a=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);return new Blob([a],{type:mime})}
 function coverPath(url){const m=/\/object\/public\/covers\/(.+)$/.exec(url||"");return m?decodeURIComponent(m[1]):""}
@@ -1069,6 +1218,10 @@ async function api(action,data){data=data||{};
   case "schools":return{schools:await allSchools()};
   case "school_save":{needAdmin();const id=cleanId(data.id),name=S(data.name,200),district=S(data.district,120);if(!id||!name||!district)throw new Error("ID, name and district are required.");
     chk(await sb.from("schools").upsert({id,name,district,category:CATS.includes(data.category)?data.category:CATS[2],librarian:S(data.librarian,160),enrollment:Math.max(0,parseInt(data.enrollment)||0)}));return{schools:await allSchools()}}
+  case "my_school_save":{needLogin();if(!isApproved())throw new Error("Your account must be approved first.");const id=ME.schoolId,name=S(data.name,200),district=S(data.district,120);
+    if(!id)throw new Error("Your account has no library yet. Ask the division librarian.");if(!name||!district)throw new Error("Library name and district are required.");
+    const r=await sb.from("schools").update({name,district,category:CATS.includes(data.category)?data.category:CATS[2],librarian:S(data.librarian,160),enrollment:Math.max(0,parseInt(data.enrollment)||0)}).eq("id",id).select("id");
+    chk(r);if(!r.data||!r.data.length)throw new Error("Could not save. The division librarian needs to run the small database update first.");return{schools:await allSchools()}}
   case "school_delete":{needAdmin();const n=chk(await sb.rpc("catalog_totals",{p_school:data.id}));if(n&&n.total>0)throw new Error("This library still has books in the catalog. Remove or move them first.");
     chk(await sb.from("schools").delete().eq("id",data.id));return{schools:await allSchools()}}
   case "search":{const per=50,page=Math.max(0,parseInt(data.page)||0);const q=S(data.q,120).replace(/[%_\\]/g," ");
@@ -1076,6 +1229,7 @@ async function api(action,data){data=data||{};
     const [rows,tot]=await Promise.all([sb.rpc("catalog_search",Object.assign({p_limit:per,p_offset:page*per},p)),sb.rpc("catalog_totals",p)]);
     const t=chk(tot)||{total:0,copies:0,all:0};return{rows:await outFor(chk(rows)||[]),total:t.total,copies:t.copies,all:t.all,page,per}}
   case "record":{const r=chk(await sb.from("holdings").select("*").eq("id",Number(data.id)).maybeSingle());if(!r)throw new Error("This record no longer exists.");
+    sb.rpc("log_view",{p_id:r.id}).then(()=>{},()=>{});
     const h=(await outFor([r]))[0];
     if(ME&&ME.role==="admin"&&r.created_by){const p=chk(await sb.from("profiles").select("name").eq("id",r.created_by).maybeSingle());h.encodedBy=p?p.name:"Former librarian"}
     return{record:h}}
@@ -1087,7 +1241,7 @@ async function api(action,data){data=data||{};
     const dup=chk(await sb.from("holdings").select("id,title").eq("school_id",sid).eq("accession_no",acc).neq("id",id||-1).maybeSingle());
     if(dup)throw new Error(`Accession no. ${acc} already exists in this library ("${dup.title}").`);
     const copies=Math.max(1,Math.min(999,parseInt(rec.copies)||1));
-    const row={school_id:sid,accession_no:acc,call_no:S(rec.callNo,80),title,author:S(rec.author,300),edition:S(rec.edition,80),place:S(rec.place,120),publisher:S(rec.publisher,200),pub_year:S(rec.year,10),pages:S(rec.pages,40),isbn:S(rec.isbn,40),lang:S(rec.language||"English",40),subject,grade:S(rec.grade,40),rtype:S(rec.type||"Book",40),copies,cond:["Good","Fair","Poor"].includes(rec.condition)?rec.condition:"Good",fund:S(rec.fund,80),date_received:D(rec.dateReceived),dr_no:S(rec.drNo,80),remarks:S(rec.remarks,500),barcodes:makeBarcodes(sid,acc,copies)};
+    const row={school_id:sid,accession_no:acc,call_no:S(rec.callNo,80),title,author:S(rec.author,300),edition:S(rec.edition,80),place:S(rec.place,120),publisher:S(rec.publisher,200),pub_year:S(rec.year,10),pages:S(rec.pages,40),isbn:S(rec.isbn,40),lang:S(rec.language||"English",40),subject,grade:S(rec.grade,40),rtype:S(rec.type||"Book",40),copies,cond:["Good","Fair","Poor"].includes(rec.condition)?rec.condition:"Good",fund:S(rec.fund,80),date_received:D(rec.dateReceived),dr_no:S(rec.drNo,80),remarks:S(rec.remarks,500),bin:S(rec.bin,40),barcodes:makeBarcodes(sid,acc,copies)};
     let saved;let old=null;
     if(id){old=chk(await sb.from("holdings").select("cover_url").eq("id",id).maybeSingle());saved=chk(await sb.from("holdings").update(row).eq("id",id).select().single())}
     else saved=chk(await sb.from("holdings").insert(row).select().single());
@@ -1109,13 +1263,33 @@ async function api(action,data){data=data||{};
   case "dashboard":return chk(await sb.rpc("dashboard_stats"));
   case "profile":{const rows=chk(await sb.rpc("subject_profile",{p_school:data.school||"",p_cat:data.cat||""}))||[];return{rows,name:scopeName(data)}}
   case "report":return await buildReportData(data);
+  case "util":{const r=await sb.rpc("utilization_stats",{p_school:data.school||"",p_cat:data.cat||""});
+    if(r.error&&/function|does not exist|schema cache/i.test(r.error.message||""))throw new Error("This report needs the database update. The division librarian runs update 2 in Supabase first.");
+    return chk(r)||{}}
   case "ill_list":{if(!ME)return{rows:[]};let q=sb.from("ill").select("*").order("requested_at",{ascending:false}).limit(2000);
     if(ME.role==="admin"&&data.school)q=q.or(`lender_id.eq.${cleanId(data.school)},borrower_id.eq.${cleanId(data.school)}`);
     return{rows:(chk(await q)||[]).map(illOut)}}
+  case "rec_extra":{const id=Number(data.id);const c=await sb.rpc("title_copies",{p_id:id});const copies=c.error?[]:(c.data||[]);
+    if(data.copiesOnly)return{copies};
+    let history=null;const r=chk(await sb.from("holdings").select("id,school_id,bin").eq("id",id).maybeSingle());
+    if(r&&ME&&(ME.role==="admin"||(ME.status==="approved"&&ME.schoolId===r.school_id))){
+      let q=sb.from("ill").select("*").order("requested_at",{ascending:false}).limit(200);
+      q=r.bin&&isHub(r.school_id)?q.eq("lender_id",r.school_id).eq("bin",r.bin):q.eq("holding_id",id);
+      const hq=await q;history=hq.error?[]:(hq.data||[]).map(illOut)}
+    return{copies,history}}
+  case "bin_info":{needLib();const b=chk(await sb.rpc("hub_bins",{p_school:data.school}))||[];let active=0;
+    const borrower=ME.role==="admin"?cleanId(data.borrower):ME.schoolId;
+    if(borrower){const a=await sb.from("ill").select("id",{count:"exact",head:true}).eq("borrower_id",borrower).eq("loan_type","bin").in("status",["Requested","Approved","Lent"]);active=a.count||0}
+    return{bins:b,active}}
+  case "ill_request_bins":{needLib();const borrower=ME.role==="admin"?cleanId(data.borrowerId):ME.schoolId;if(!borrower)throw new Error("Choose the borrowing library.");
+    const contact=S(data.contact,160);if(!contact)throw new Error("Give a contact person.");const list=(data.bins||[]).slice(0,2);if(!list.length)throw new Error("Choose a bin.");
+    for(const b of list){const ct=await sb.from("holdings").select("id",{count:"exact",head:true}).eq("school_id",data.lenderId).eq("bin",b.bin);
+      chk(await sb.from("ill").insert({holding_id:Number(b.ref),loan_type:"bin",bin:S(b.bin,40),title:`${S(b.bin,40)} · ${ct.count||0} title${ct.count===1?"":"s"}`,call_no:"",accession_no:"",lender_id:cleanId(data.lenderId),borrower_id:borrower,copies:1,borrow_date:D(data.borrowDate),needed_by:D(data.borrowDate),purpose:S(data.purpose,60),contact,contact_info:S(data.contactInfo,160),message:S(data.message,500),history:[{status:"Requested",at:nowISO(),by:ME.id,note:""}]}))}
+    return{ok:true}}
   case "ill_request":{needLib();const h=chk(await sb.from("holdings").select("*").eq("id",Number(data.holdingId)).maybeSingle());if(!h)throw new Error("This book is no longer in the catalog.");
     const borrower=ME.role==="admin"?cleanId(data.borrowerId):ME.schoolId;if(!borrower)throw new Error("Choose the borrowing library.");
     const contact=S(data.contact,160);if(!contact)throw new Error("Give a contact person.");
-    chk(await sb.from("ill").insert({holding_id:h.id,title:h.title,call_no:h.call_no,accession_no:h.accession_no,lender_id:h.school_id,borrower_id:borrower,copies:parseInt(data.copies)||0,needed_by:D(data.neededBy),purpose:S(data.purpose,60),contact,contact_info:S(data.contactInfo,160),message:S(data.message,500),history:[{status:"Requested",at:nowISO(),by:ME.id,note:""}]}));
+    chk(await sb.from("ill").insert({holding_id:h.id,title:h.title,call_no:h.call_no,accession_no:h.accession_no,lender_id:h.school_id,borrower_id:borrower,copies:parseInt(data.copies)||0,needed_by:D(data.borrowDate),borrow_date:D(data.borrowDate),due_date:D(data.dueDate),reason:S(data.reason,300),loan_type:"item",purpose:S(data.purpose,60),contact,contact_info:S(data.contactInfo,160),message:S(data.message,500),history:[{status:"Requested",at:nowISO(),by:ME.id,note:""}]}));
     return{ok:true}}
   case "ill_update":{needLib();const r=chk(await sb.from("ill").select("*").eq("id",Number(data.id)).maybeSingle());if(!r)throw new Error("This loan no longer exists.");
     const map={approve:"Approved",decline:"Declined",lend:"Lent",return:"Returned",cancel:"Cancelled"};const st=map[data.op];if(!st)throw new Error("Unknown action.");
@@ -1167,10 +1341,10 @@ async function buildReportData(p){const type=p.type||"holdings";let title="",col
     else{title="Division Summary by District and Library Type";cols=["District","Library Type","Libraries","With Holdings","Titles","Copies","Lent Out (ILL)"];const m={};
       per.forEach(s=>{const k=s.district+"|"+s.category;m[k]=m[k]||[0,0,0,0,0];m[k][0]++;if(s.titles)m[k][1]++;m[k][2]+=s.titles;m[k][3]+=s.copies;m[k][4]+=s.lent});
       rows=Object.entries(m).sort().map(([k,v])=>[...k.split("|"),...v]);}}
-  else if(type==="ill"){title="Interlibrary Loan Report";cols=["Date Requested","Title","Lending Library","Borrowing Library","Copies","Purpose","Status","Due Date","Date Returned"];
+  else if(type==="ill"){title="Interlibrary Loan Report";cols=["Date Requested","Book or Bin","Lending Library","Borrowing Library","Requested By","Email","Copies","Purpose","Date Borrowed","Date to Return","Reason (longer loan)","Status","Date Returned"];
     if(ME){const list=(chk(await sb.from("ill").select("*").order("requested_at").limit(5000))||[]).filter(r=>{const a=schools.find(x=>x.id===r.lender_id)||{},b=schools.find(x=>x.id===r.borrower_id)||{};return(!p.school&&!p.cat)||inScope(a)||inScope(b)});
       const today=new Date().toISOString().slice(0,10);
-      rows=list.map(r=>[String(r.requested_at).slice(0,10),r.title,sname(r.lender_id),sname(r.borrower_id),r.copies,r.purpose,r.status==="Lent"?(r.due_date&&r.due_date<today?"Overdue":"On loan"):r.status,r.due_date||"",r.returned_at?String(r.returned_at).slice(0,10):""]);}}
+      rows=list.map(r=>[String(r.requested_at).slice(0,10),(r.loan_type==="bin"?"[Bin] ":"")+r.title,sname(r.lender_id),sname(r.borrower_id),r.requester_name||r.contact||"",r.requester_email||"",r.copies,r.purpose,r.borrow_date||r.needed_by||"",r.due_date||"",r.reason||"",r.status==="Lent"?(r.due_date&&r.due_date<today?"Overdue":"On loan"):r.status,r.returned_at?String(r.returned_at).slice(0,10):""]);}}
   else if(type==="librarians"){title="Registered Librarians";
     if(ME&&ME.role==="admin"){cols=["Name","Sex","User Type","Position","School ID","Library","District","Email","Mobile No.","Username","Status","Date Registered"];
       const us=(chk(await sb.rpc("admin_users"))||[]).filter(u=>u.role==="librarian").filter(u=>{const s=schools.find(x=>x.id===(u.school_id||u.req_school_id));return(!p.school&&!p.cat)||(s&&inScope(s))});
