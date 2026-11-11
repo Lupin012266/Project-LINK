@@ -1318,7 +1318,8 @@ async function api(action,data){data=data||{};
     const put=async r=>id?await sb.from("holdings").update(r).eq("id",id).select().single():await sb.from("holdings").insert(r).select().single();
     if(id)old=chk(await sb.from("holdings").select("cover_url").eq("id",id).maybeSingle());
     let res=await put(row);
-    if(res.error&&/'(bin|ddc)'/.test(res.error.message||"")){delete row.bin;delete row.ddc;res=await put(row)}
+    for(let t=0;t<2&&res.error;t++){const m=/'(bin|ddc)' column/.exec(res.error.message||"");if(!m)break;const col=m[1],val=row[col];delete row[col];res=await put(row);
+      if(!res.error&&col==="bin"&&val)toast("Saved, but the bin no. was NOT saved: the database needs the Project LINK update. Please tell the Division Librarian.")}
     saved=chk(res);
     if(Object.prototype.hasOwnProperty.call(data,"cover")){const prev=old?old.cover_url:"";
       if(!data.cover){saved=chk(await sb.from("holdings").update({cover_url:""}).eq("id",saved.id).select().single())}
