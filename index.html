@@ -935,7 +935,7 @@ function schoolFields(p,v){v=v||{};return `
 function sidCheck(p){const el=$(p+"_sid");if(!el)return;const id=el.value.trim(),s=lib(id);
   ["nameL","distL","catL","enrL"].forEach(k=>$(p+"_"+k).hidden=!!s);
   $(p+"_sidnote").innerHTML=!id?"Type your 6-digit DepEd School ID (or the Library Hub ID).":s?`<span class="good">✓ Found: <b>${esc(s.name)}</b> · ${esc(s.district)}</span>`:`<span class="fair">New school. Type the school name and district below; the division librarian adds it when approving you.</span>`;}
-const PRIVACY=`I agree that Project LINK of SDO Agusan del Norte collects my name, sex, school, email, mobile number and username to manage my librarian account and the union catalog, in line with the Data Privacy Act of 2012 (RA 10173). Only the division librarian can see my email and mobile number. Project LINK also records site visits (page, device and approximate city) for usage statistics.`;
+const PRIVACY=`I agree that Project LINK of SDO Agusan del Norte collects my name, sex, school, email, mobile number and username to manage my librarian account and the union catalog, in line with the Data Privacy Act of 2012 (RA 10173). Only the division librarian can see my email and mobile number. Project LINK also records site visits (page, device and city) for usage statistics. When I am logged in, my browser may ask to share my location; only the city is saved.`;
 function loginCard(){return `<div class="authwrap"><div class="panel authcard stack">
   <button type="button" class="signupbtn top" data-auth="register">New here? Create an account (Sign up) →</button>
   <div class="authhead"><div class="eyebrow">Department of Education · SDO Agusan del Norte</div><h2>Project LINK</h2><div class="sub">Union Catalog of School Libraries</div></div>
@@ -1021,11 +1021,21 @@ async function loadUsers(){try{users=(await api("users_list")).users}catch(e){$(
 /* ===================== site analytics ===================== */
 let GEO=null,anaDays=30;
 function visitorId(){let v=store("link-visitor");if(!v){v=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2);store("link-visitor",v)}return v}
-async function getGeo(){if(GEO)return GEO;try{const c=sessionStorage.getItem("link-geo");if(c)return GEO=JSON.parse(c)}catch(e){}
+async function ipGeo(){if(GEO)return GEO;try{const c=sessionStorage.getItem("link-geo");if(c)return GEO=JSON.parse(c)}catch(e){}
   const pick=j=>({country:String(j.country||j.country_name||""),region:String(j.region||""),city:String(j.city||"")});
   try{const r=await fetch("https://get.geojs.io/v1/ip/geo.json");GEO=pick(await r.json())}
   catch(e){try{const r=await fetch("https://ipwho.is/");GEO=pick(await r.json())}catch(e2){GEO={country:"",region:"",city:""}}}
   try{sessionStorage.setItem("link-geo",JSON.stringify(GEO))}catch(e){}return GEO}
+let GEO_GPS=null,GPS_ASKED=false;
+/* logged-in accounts: the device's real location (browser asks permission once), city level only */
+async function gpsGeo(){if(GEO_GPS)return GEO_GPS;try{const c=sessionStorage.getItem("link-geo-gps");if(c)return GEO_GPS=JSON.parse(c)}catch(e){}
+  if(GPS_ASKED||!navigator.geolocation)return null;GPS_ASKED=true;
+  const pos=await new Promise(res=>navigator.geolocation.getCurrentPosition(res,()=>res(null),{enableHighAccuracy:false,timeout:15000,maximumAge:3600000}));
+  if(!pos)return null;
+  try{const r=await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${pos.coords.latitude.toFixed(3)}&longitude=${pos.coords.longitude.toFixed(3)}&localityLanguage=en`);const j=await r.json();
+    GEO_GPS={country:String(j.countryName||""),region:String(j.principalSubdivision||""),city:String(j.city||j.locality||"")};
+    try{sessionStorage.setItem("link-geo-gps",JSON.stringify(GEO_GPS))}catch(e){}return GEO_GPS}catch(e){return null}}
+async function getGeo(){if(ME){const g=await gpsGeo();if(g&&(g.city||g.country))return g}return ipGeo()}
 const deviceType=()=>{const u=navigator.userAgent||"";return /iPad|Tablet/i.test(u)?"Tablet":/Mobi|Android|iPhone/i.test(u)?"Mobile":"Desktop"};
 async function logVisit(view){if(!sb)return;try{const g=await getGeo();let ref="";try{ref=document.referrer?new URL(document.referrer).hostname:""}catch(e){}
   if(ref===location.hostname)ref="";await sb.rpc("log_visit",{p_visitor:visitorId(),p_page:view,p_country:g.country,p_region:g.region,p_city:g.city,p_device:deviceType(),p_referrer:ref})}catch(e){}}
@@ -1044,7 +1054,7 @@ async function loadAnalytics(){const out=$("anaOut");
   const place=r=>[r.city,r.region].filter(Boolean).join(", ")||"Unknown";
   const tbl=(cols,rows,empty)=>rows.length?`<div class="tablebox"><table><thead><tr>${cols.map(c=>`<th>${c}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table></div>`:`<div class="panel empty">${empty}</div>`;
   out.innerHTML=`<div class="panel stack"><div class="row" style="justify-content:space-between;align-items:center"><h2>Site analytics</h2><div class="seg" role="group" aria-label="Period">${seg}</div></div>
-    <p class="note">Who opens Project LINK and from where. Locations are approximate (city or province, based on the internet connection). Names appear only for logged-in accounts; everyone else shows as <b>Guest</b>.${a.since?` Counting since ${esc(fmtDate(a.since))}.`:""}</p></div>`+
+    <p class="note">Who opens Project LINK and from where. Logged-in accounts show the city where their device really is (the browser asks them once to allow location; only the city is saved). If they don't allow it, and for <b>Guests</b>, the location is approximate, based on the internet provider.${a.since?` Counting since ${esc(fmtDate(a.since))}.`:""}</p></div>`+
    kpis([[a.visits.toLocaleString(),"visits"],[a.visitors.toLocaleString(),"unique visitors (devices)"],[a.users.toLocaleString(),"logged-in accounts"],[a.countries.toLocaleString(),"countries"],[a.today.toLocaleString(),"visits today"],[a.allTime.toLocaleString(),"visits since the start"]])+
    dayChart+
    `<div class="split"><div class="stack">${barChart("Visitors by country",items(a.byCountry,r=>r.name),"visits")}</div><div class="stack">${barChart("Visitors by city / province",items(a.byPlace,place,r=>r.country),"visits")}</div></div>`+
