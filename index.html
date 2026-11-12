@@ -923,7 +923,8 @@ async function libProfile(p){
   const subj=countBy(rows,h=>h.subject,h=>Number(h.copies)||0),grade=countBy(rows,h=>h.grade,h=>Number(h.copies)||0),type=countBy(rows,h=>h.type,h=>Number(h.copies)||0);
   const fund=countBy(rows,h=>h.fund,h=>Number(h.copies)||0),cond=countBy(rows,h=>h.condition,h=>Number(h.copies)||0),lang=countBy(rows,h=>h.language,h=>Number(h.copies)||0);
   const age=countBy(rows,h=>{const y=parseInt(h.year);return !y?"Year not stated":y>=2020?"2020 and newer":y>=2010?"2010–2019":y>=2000?"2000–2009":"Before 2000"},h=>Number(h.copies)||0);
-  const recent=rows.slice().sort((a,b)=>String(b.dateReceived||b.createdAt).localeCompare(String(a.dateReceived||a.createdAt))).slice(0,10);
+  const receipt=rows.slice().sort((a,b)=>String(a.dateReceived||"9999").localeCompare(String(b.dateReceived||"9999"))||String(a.title).localeCompare(String(b.title)));
+  const mdY=d=>{const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(d||"");return m?`${m[2]}-${m[3]}-${m[1]}`:"Not stated"};
   const today=new Date().toLocaleDateString("en-PH",{year:"numeric",month:"long",day:"numeric"});
   const head=lpEd(sid,"head",`Republic of the Philippines<br><b>Department of Education</b><br>Region XIII – Caraga<br>Schools Division of Agusan del Norte<br><b>${esc(String(s.name||"").toUpperCase())}</b><br>${esc(s.district||"")}, Agusan del Norte`);
   const foot=lpEd(sid,"foot",`School address · Contact number · Email address · Facebook page`);
@@ -959,10 +960,15 @@ async function libProfile(p){
     <tr><th>Interlibrary loans: borrowed from other libraries</th><td class="num">${Number(me.borrowed||0).toLocaleString()}</td></tr>
    </tbody></table>
    ${(u.top||[]).length?`<table><thead><tr><th>Most borrowed titles</th><th class="num">Times borrowed</th></tr></thead><tbody>${(u.top||[]).slice(0,5).map(t=>`<tr><td>${esc(t.title)}</td><td class="num">${Number(t.loans)}</td></tr>`).join("")}</tbody></table>`:""}
-   <h3>IV. Latest additions</h3>
-   <table><thead><tr><th>Date received</th><th>Title</th><th>Call no.</th><th class="num">Copies</th></tr></thead><tbody>${recent.map(h=>`<tr><td>${esc(fmtDate(h.dateReceived||h.createdAt)||"")}</td><td>${esc(h.title)}</td><td>${esc(h.callNo||"")}</td><td class="num">${h.copies}</td></tr>`).join("")||`<tr><td colspan="4">No records yet</td></tr>`}</tbody></table>
-   <div class="sig"><div>Prepared by:<div class="ln">${lpEd(sid,"prep",esc(s.librarian||"Name of librarian"))}</div>${lpEd(sid,"prepPos","School Librarian / Library-in-Charge")}</div>
-    <div>Noted by:<div class="ln">${lpEd(sid,"noted","Name of school head")}</div>${lpEd(sid,"notedPos","School Head")}</div></div>
+   <h3>IV. Receipt of supplementary learning resources</h3>
+   <table><thead><tr><th class="num" style="width:6%">Item No.</th><th>Description of learning resource</th><th style="width:13%">Quantity received</th><th style="width:15%">Date received by school</th><th style="width:13%">Source of fund</th><th style="width:13%">Condition upon receipt</th></tr></thead>
+   <tbody>${receipt.map((h,i)=>`<tr><td class="num">${i+1}</td><td>${esc(h.title)}${h.callNo?`<div style="font-size:10px">${esc(h.callNo)}</div>`:""}</td><td>${h.copies} ${Number(h.copies)===1?"copy":"copies"}</td><td>${esc(mdY(h.dateReceived))}</td><td>${esc(h.fund||"")}</td><td>${esc(h.condition||"Good")}</td></tr>`).join("")||`<tr><td colspan="6">No records yet</td></tr>`}
+   ${receipt.length?`<tr><td></td><td colspan="5" style="text-align:center;font-style:italic">*nothing follows*</td></tr>`:""}</tbody></table>
+   <div style="display:flex;justify-content:flex-end;margin-top:14px"><div style="text-align:center;min-width:42%">Received by:<div class="ln" style="border-top:1px solid #000;margin-top:26px;padding-top:3px;font-weight:bold">${lpEd(sid,"recv",esc(s.librarian||"Name of librarian"))}</div>(Name &amp; Signature)</div></div>
+   <h3>V. Certification</h3>
+   <p>I hereby certify that the above information is true and correct.</p>
+   <div class="sig"><div>Prepared by:<div class="ln">${lpEd(sid,"prep",esc(s.librarian||"Name of librarian"))}</div>${lpEd(sid,"prepPos","Name &amp; Signature of Library-in-Charge")}<div>Date: ${lpEd(sid,"prepDate","__________________","span")}</div></div>
+    <div>Noted by:<div class="ln">${lpEd(sid,"noted","Name of school head")}</div>${lpEd(sid,"notedPos","Name &amp; Signature of School Head")}<div>Date: ${lpEd(sid,"notedDate","__________________","span")}</div></div></div>
    <div class="lpf">${foot}</div>
   </div></div><style>${LP_CSS}#lpWrap .lped{outline:1px dashed #c8902a;outline-offset:1px;min-height:1em}#lpWrap .lped:focus{outline:2px solid #c8902a;background:#fffbea}#lpWrap{background:#fff;color:#000;padding:16px;border-radius:6px}</style>`;
   return{lprofile:true,title:"Library Profile – "+(s.name||sid),scopeName:s.name||sid,html,cols:[],rows:[],sid,name:s.name||sid}}
