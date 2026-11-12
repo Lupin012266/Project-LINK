@@ -140,6 +140,10 @@ dl.rec dt{font-size:13px;color:var(--muted);font-weight:600;background:var(--sof
 .authcard{width:100%;max-width:420px;border-top:4px solid var(--accent)}
 .authhead{text-align:center}.authhead h2{font-size:26px;margin-top:4px}
 .hello h2{font-size:24px;margin-top:2px}
+.days{display:flex;align-items:flex-end;gap:2px;height:150px;padding:8px 0 0;border-bottom:1px solid var(--line)}
+.days i{flex:1;min-width:3px;background:var(--gold);border-radius:2px 2px 0 0;position:relative}
+.days i:hover{background:var(--ink)}
+.dayax{display:flex;justify-content:space-between;font-size:12px;color:var(--muted,#5d6472)}
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
 .tile{display:flex;flex-direction:column;gap:2px;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--gold);border-radius:6px;padding:12px 14px;text-decoration:none;color:var(--ink)}
 .tile:hover{border-color:var(--accent)}.tile b{font-family:var(--display);font-size:26px;font-variant-numeric:tabular-nums}.tile span{font-size:13px;color:var(--muted)}
@@ -224,6 +228,7 @@ label.check{flex-direction:row;gap:8px;align-items:center;font-weight:500;margin
     <a href="#dashboard" data-view="dashboard">Dashboard</a>
     <a href="#reports" data-view="reports">Reports</a>
     <a href="#libraries" data-view="libraries">Libraries</a>
+    <a href="#analytics" data-view="analytics" id="anaTab" hidden>Site analytics</a>
     <a href="#account" data-view="account"><span id="acctLabel">Sign up / Log in</span><span class="count" id="pendCount" hidden></span></a>
   </nav>
   <div class="banner" id="acctBanner" role="status" hidden></div>
@@ -389,6 +394,7 @@ label.check{flex-direction:row;gap:8px;align-items:center;font-weight:500;margin
   </section>
 
   <!-- LIBRARIES -->
+  <section id="v-analytics" class="stack" hidden><div id="anaOut" class="stack"></div></section>
   <section id="v-libraries" class="stack" hidden>
     <div class="panel stack" id="libIntro"></div>
     <details class="panel" id="schoolWrap"><summary id="schoolSum">Add a library manually (optional)</summary>
@@ -443,10 +449,13 @@ let ME=null,schools=[],illRows=[],users=[],page=0,current=null;
 let editing=null,coverData=null,coverChanged=false,callManual=false,pendingRows=[];
 const isAdmin=()=>!!ME&&ME.role==="admin";
 const isApproved=()=>!!ME&&ME.role!=="admin"&&ME.status==="approved";
-const canAdd=()=>isAdmin()||isApproved();
+const isDivType=t=>["LR Manager (Division Office)","LR PDO (Division Office)"].includes(t);
+const isDiv=()=>isApproved()&&isDivType(ME.userType)&&!ME.schoolId;
+const canAdd=()=>isAdmin()||(isApproved()&&!isDiv());
+const canSeeAll=()=>isAdmin()||isDiv();
 const lockedLib=()=>isApproved()?ME.schoolId:"";
 const myLib=()=>lockedLib()||$("myLib").value;
-const canEditRec=h=>isAdmin()||(isApproved()&&h.schoolId===ME.schoolId);
+const canEditRec=h=>isAdmin()||(isApproved()&&!!ME.schoolId&&h.schoolId===ME.schoolId);
 const lib=id=>schools.find(x=>x.id===id);
 const libName=id=>{const s=lib(id);return s?s.name:"(unregistered library)"};
 const catOf=id=>(lib(id)||{}).category||"School Library – Secondary";
@@ -484,21 +493,22 @@ function libOptions(){
   $("myLibL").hidden=!!locked;}
 
 /* ===================== routing ===================== */
-const VIEWS=["home","catalog","add","loans","dashboard","reports","libraries","account"];
+const VIEWS=["home","catalog","add","loans","dashboard","reports","libraries","analytics","account"];
 function currentView(){const h=location.hash.slice(1);return VIEWS.includes(h)&&(h!=="home"||ME)?h:(ME?"home":"catalog")}
 function route(){const v=currentView();
   VIEWS.forEach(x=>{$("v-"+x).hidden=x!==v});
   document.querySelectorAll("nav.tabs a").forEach(a=>{if(a.dataset.view===v)a.setAttribute("aria-current","page");else a.removeAttribute("aria-current")});
   if(v==="home")loadHome();else if(v==="catalog")loadCatalog();else if(v==="add")renderAdd();else if(v==="loans")loadLoans();else if(v==="dashboard")loadDashboard();
-  else if(v==="reports")loadReport();else if(v==="libraries")renderLibraries();else if(v==="account")renderAccount();}
+  else if(v==="reports")loadReport();else if(v==="libraries")renderLibraries();else if(v==="analytics")loadAnalytics();else if(v==="account")renderAccount();
+  logVisit(v);}
 addEventListener("hashchange",route);
 
 /* ===================== role line + banners ===================== */
 function applyRole(){libOptions();
   const rl=$("roleLine");
   if(!ME)rl.innerHTML=`Browsing as a visitor · <a href="#account">Log in</a>`;
-  else rl.innerHTML=`<span>Logged in as <b>${esc(ME.name)}</b> · ${isAdmin()?"Division librarian":isApproved()?esc(libName(ME.schoolId)):ME.status==="rejected"?"not approved":"waiting for approval"}</span><button type="button" class="ghost sm" id="logoutBtn">Log out</button>`;
-  $("acctLabel").textContent=!ME?"Sign up / Log in":isAdmin()?"Librarian accounts":"My profile";$("homeTab").hidden=!ME;
+  else rl.innerHTML=`<span>Logged in as <b>${esc(ME.name)}</b> · ${isAdmin()?"Division librarian":isDiv()?esc(ME.userType.replace(" (Division Office)",""))+" · Division Office":isApproved()?esc(libName(ME.schoolId)):ME.status==="rejected"?"not approved":"waiting for approval"}</span><button type="button" class="ghost sm" id="logoutBtn">Log out</button>`;
+  $("acctLabel").textContent=!ME?"Sign up / Log in":isAdmin()?"Librarian accounts":"My profile";$("homeTab").hidden=!ME;$("anaTab").hidden=!canSeeAll();
   const b=$("acctBanner");b.hidden=true;
   if(ME&&ME.mustChange){b.hidden=false;b.innerHTML=`The division librarian reset your password. Please <a href="#account">set a new password</a> now.`}
   else if(ME&&!isAdmin()&&ME.status==="pending"){b.hidden=false;b.innerHTML="Your registration is <b>waiting for approval</b> by the division librarian. You can add resources once you're approved."}
@@ -776,9 +786,9 @@ function illRow(r,side){const mine=myLib();
 function illTable(list,side,title,emptyMsg){const rank=r=>isOverdue(r)?0:r.status==="Requested"?1:r.status==="Approved"?2:r.status==="Lent"?3:4;
   const sorted=list.slice().sort((a,b)=>rank(a)-rank(b)||String(b.requestedAt).localeCompare(String(a.requestedAt)));
   return `<div class="stack"><h3>${title}</h3>`+(sorted.length?`<div class="tablebox"><table><thead><tr><th>Requested</th><th>Book or bin</th><th>${side==="lend"?"Borrowing library":side==="borrow"?"Lending library":"Lender → borrower"}</th><th>Requested by</th><th>Date borrowed → to return</th><th>Status</th><th></th></tr></thead><tbody>${sorted.map(r=>illRow(r,side)).join("")}</tbody></table></div>`:`<div class="panel empty">${emptyMsg}</div>`)+`</div>`}
-async function loadLoans(){const out=$("illOut");if($("rulesOut")&&!$("rulesOut").innerHTML)$("rulesOut").innerHTML=RULES;$("illLibL").hidden=!isAdmin();
+async function loadLoans(){const out=$("illOut");if($("rulesOut")&&!$("rulesOut").innerHTML)$("rulesOut").innerHTML=RULES;$("illLibL").hidden=!canSeeAll();
   if(!ME){out.innerHTML=`<div class="panel empty"><strong>Log in to see interlibrary loans</strong><a href="#account">Log in</a> with your librarian account.</div>`;return}
-  if(!canAdd()){out.innerHTML=`<div class="panel empty"><strong>Waiting for approval</strong>You can use interlibrary loans once the division librarian approves your account.</div>`;return}
+  if(!canAdd()&&!isDiv()){out.innerHTML=`<div class="panel empty"><strong>Waiting for approval</strong>You can use interlibrary loans once the division librarian approves your account.</div>`;return}
   const l=lockedLib()||$("illLib").value;
   try{illRows=(await api("ill_list",{school:l})).rows}catch(e){out.innerHTML=`<div class="panel empty">${esc(e.message)}</div>`;return}
   if(!illRows.length){out.innerHTML=`<div class="panel empty"><strong>No interlibrary loans yet</strong>Find a book in <a href="#catalog">Search catalog</a>, open it, and choose <b>Request to borrow</b> (school libraries) or <b>Borrow this bin</b> (Library Hubs).</div>`;return}
@@ -905,12 +915,13 @@ function renderLibraries(){
 
 /* ===================== accounts ===================== */
 /* ===================== accounts (LRMIS-style) ===================== */
-const USER_TYPES=["School Librarian","Teacher-Librarian","Library-in-Charge / Library Designate","Library Hub Staff","School Head (view only)","Other"];
+const DIV_TYPES=["LR Manager (Division Office)","LR PDO (Division Office)"];
+const USER_TYPES=["School Librarian","Teacher-Librarian","Library-in-Charge / Library Designate","Library Hub Staff",...DIV_TYPES,"School Head (view only)","Other"];
 let authMode="login";
 const districts=()=>[...new Set(schools.map(s=>s.district).filter(Boolean))].sort();
 const optList=(arr,sel,first)=>(first!==undefined?`<option value="">${first}</option>`:"")+arr.map(v=>`<option value="${esc(v)}"${v===sel?" selected":""}>${esc(v)}</option>`).join("");
 function schoolFields(p,v){v=v||{};return `
-  <fieldset><legend>School information</legend><div class="formgrid">
+  <fieldset id="${p}_schoolBox"><legend>School information</legend><div class="formgrid">
    <label>Region<input value="Region XIII – Caraga" readonly tabindex="-1"></label>
    <label>Division<input value="Agusan del Norte" readonly tabindex="-1"></label>
    <label>School ID *<input id="${p}_sid" list="${p}_sidlist" inputmode="numeric" autocomplete="off" placeholder="e.g. 131234" value="${esc(v.sid||"")}">
@@ -924,7 +935,7 @@ function schoolFields(p,v){v=v||{};return `
 function sidCheck(p){const el=$(p+"_sid");if(!el)return;const id=el.value.trim(),s=lib(id);
   ["nameL","distL","catL","enrL"].forEach(k=>$(p+"_"+k).hidden=!!s);
   $(p+"_sidnote").innerHTML=!id?"Type your 6-digit DepEd School ID (or the Library Hub ID).":s?`<span class="good">✓ Found: <b>${esc(s.name)}</b> · ${esc(s.district)}</span>`:`<span class="fair">New school. Type the school name and district below; the division librarian adds it when approving you.</span>`;}
-const PRIVACY=`I agree that Project LINK of SDO Agusan del Norte collects my name, sex, school, email, mobile number and username to manage my librarian account and the union catalog, in line with the Data Privacy Act of 2012 (RA 10173). Only the division librarian can see my email and mobile number.`;
+const PRIVACY=`I agree that Project LINK of SDO Agusan del Norte collects my name, sex, school, email, mobile number and username to manage my librarian account and the union catalog, in line with the Data Privacy Act of 2012 (RA 10173). Only the division librarian can see my email and mobile number. Project LINK also records site visits (page, device and approximate city) for usage statistics.`;
 function loginCard(){return `<div class="authwrap"><div class="panel authcard stack">
   <button type="button" class="signupbtn top" data-auth="register">New here? Create an account (Sign up) →</button>
   <div class="authhead"><div class="eyebrow">Department of Education · SDO Agusan del Norte</div><h2>Project LINK</h2><div class="sub">Union Catalog of School Libraries</div></div>
@@ -938,11 +949,12 @@ function loginCard(){return `<div class="authwrap"><div class="panel authcard st
  </div></div>`}
 function registerForm(){return `<form class="panel stack" id="regForm" novalidate>
   <div class="row" style="justify-content:space-between;align-items:center"><h2>Create an account</h2><button type="button" class="ghost sm" data-auth="login">Back to log in</button></div>
-  <p class="note">For school librarians, teacher-librarians and library designates in SDO Agusan del Norte. After you sign up, the division librarian reviews and approves your account.</p>
+  <p class="note">For school librarians, teacher-librarians, library designates and the LR Manager and LR PDO of the Division Office in SDO Agusan del Norte. After you sign up, the division librarian reviews and approves your account.</p>
   <fieldset><legend>Account type</legend><div class="formgrid">
    <label class="span2">User type *<select id="g_type">${optList(USER_TYPES,"","Select user type")}</select></label>
    <label class="span2">Position / designation<input id="g_pos" placeholder="e.g. Teacher III, Librarian I"></label>
   </div></fieldset>
+  <p class="note" id="g_divnote" hidden><b>Division Office staff:</b> you don't need a School ID. The division librarian approves you as Division Office (CID – LRMS).</p>
   ${schoolFields("g")}
   <fieldset><legend>Personal information</legend><div class="formgrid">
    <label>Last name *<input id="g_last" autocomplete="family-name"></label>
@@ -970,8 +982,8 @@ function renderAccount(){const out=$("acctOut");
     <label>New password (at least 8 characters)<input id="p_new" type="password" autocomplete="new-password"></label>
     <label>Type the new password again<input id="p_new2" type="password" autocomplete="new-password"></label>
     <div class="row"><button type="submit">Change password</button><span class="note" id="p_msg"></span></div></form>`;
-  const status=isAdmin()?`<span class="pill info">Division librarian</span>`:ME.status==="approved"?`<span class="pill good">Approved</span> You can add resources for <b>${esc(libName(ME.schoolId))}</b>.`:ME.status==="rejected"?`<span class="pill poor">Not approved</span> Update your details below to ask again, or contact the division librarian.`:`<span class="pill fair">Waiting for approval</span> The division librarian will review your registration.`;
-  const editSchool=!isAdmin()&&ME.status!=="approved";
+  const status=isAdmin()?`<span class="pill info">Division librarian</span>`:isDiv()?`<span class="pill good">Approved</span> Division Office account: you can view the whole union catalog, interlibrary loans, reports and site analytics.`:ME.status==="approved"?`<span class="pill good">Approved</span> You can add resources for <b>${esc(libName(ME.schoolId))}</b>.`:ME.status==="rejected"?`<span class="pill poor">Not approved</span> Update your details below to ask again, or contact the division librarian.`:`<span class="pill fair">Waiting for approval</span> The division librarian will review your registration.`;
+  const editSchool=!isAdmin()&&ME.status!=="approved"&&!isDivType(ME.userType);
   const profile=`<form class="panel stack" id="profForm" novalidate><h2>${isAdmin()?"My account":"My profile"}</h2><p>${status}</p>
     <div class="formgrid">
      ${isAdmin()?"":`<label class="span2">User type<select id="m_type">${optList(USER_TYPES,ME.userType,"Select user type")}</select></label>`}
@@ -998,13 +1010,48 @@ async function loadUsers(){try{users=(await api("users_list")).users}catch(e){$(
   const list=userFilter==="all"?all:all.filter(u=>u.status===userFilter);
   const rows=list.map(u=>{
     const sid=u.schoolId||u.reqSchoolId,s=lib(sid);
-    const libCell=s?`<span class="call">${esc(s.id)}</span><br>${esc(s.name)}<div class="sub">${esc(s.district)}</div>`:`<span class="call">${esc(u.reqSchoolId||"—")}</span><br>${esc(u.reqSchoolName||u.schoolOther||"")}<div class="sub">${esc(u.reqDistrict||"")}</div><span class="pill fair">New school</span>`;
-    const acts=u.status==="pending"||u.status==="rejected"?`<button class="sm" data-acct="approve" data-uid="${u.id}">Approve</button>${u.status==="pending"?`<button class="danger sm" data-acct="reject" data-uid="${u.id}">Reject</button>`:""}`:`<button class="ghost sm" data-acct="move" data-uid="${u.id}">Change library</button>`;
+    const libCell=isDivType(u.userType)&&!u.schoolId?`<b>Division Office</b><div class="sub">CID – LRMS</div>`:s?`<span class="call">${esc(s.id)}</span><br>${esc(s.name)}<div class="sub">${esc(s.district)}</div>`:`<span class="call">${esc(u.reqSchoolId||"—")}</span><br>${esc(u.reqSchoolName||u.schoolOther||"")}<div class="sub">${esc(u.reqDistrict||"")}</div><span class="pill fair">New school</span>`;
+    const acts=u.status==="pending"||u.status==="rejected"?`<button class="sm" data-acct="approve" data-uid="${u.id}">Approve</button>${u.status==="pending"?`<button class="danger sm" data-acct="reject" data-uid="${u.id}">Reject</button>`:""}`:isDivType(u.userType)&&!u.schoolId?"":`<button class="ghost sm" data-acct="move" data-uid="${u.id}">Change library</button>`;
     return `<tr><td><b>${esc(u.name)}</b><div class="sub">${esc([u.userType,u.sex].filter(Boolean).join(" · "))}</div><div class="sub">${esc(u.designation||"")}</div></td><td>${libCell}</td><td style="overflow-wrap:anywhere">${esc(u.email)}<div class="sub">${esc(u.phone)}</div></td><td class="call">${esc(u.username||"—")}</td><td>${fmtDate(u.createdAt)}</td><td><span class="pill ${u.status==="approved"?"good":u.status==="pending"?"fair":"poor"}">${u.status==="approved"?"Approved":u.status==="pending"?"Pending":"Not approved"}</span>${u.mustChange?`<div class="sub">temporary password</div>`:""}<div class="sub">${u.records.toLocaleString()} records</div></td><td><div class="actions" id="acct-${u.id}">${acts}<button class="ghost sm" data-acct="reset" data-uid="${u.id}">Reset password</button><button class="danger sm" data-acct="remove" data-uid="${u.id}">Delete</button></div></td></tr>`}).join("");
   const tab=(k,l,n)=>`<button type="button" data-ufilter="${k}" aria-pressed="${userFilter===k}">${l} (${n})</button>`;
   $("usersOut").innerHTML=`<div class="panel stack"><div class="row" style="justify-content:space-between;align-items:center"><h2>Librarian accounts</h2><div class="seg" role="group" aria-label="Filter accounts">${tab("pending","Pending",pend)}${tab("approved","Approved",appr)}${tab("rejected","Not approved",rej)}${tab("all","All",all.length)}</div></div>
     <p class="note">Librarians create their own account with their School ID. If their school is new, <b>Approve</b> lets you add it to Libraries in one click. For a forgotten password, choose <b>Reset password</b> to email them a link for a new password.</p></div>`+
     (list.length?`<div class="tablebox"><table><thead><tr><th>Name</th><th>School</th><th>Email / mobile</th><th>Username</th><th>Registered</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`:`<div class="panel empty"><strong>${userFilter==="pending"?"No sign-ups waiting":"No accounts here"}</strong>Send your librarians the link and ask them to choose <b>Create an account</b>.</div>`);}
+
+/* ===================== site analytics ===================== */
+let GEO=null,anaDays=30;
+function visitorId(){let v=store("link-visitor");if(!v){v=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2);store("link-visitor",v)}return v}
+async function getGeo(){if(GEO)return GEO;try{const c=sessionStorage.getItem("link-geo");if(c)return GEO=JSON.parse(c)}catch(e){}
+  const pick=j=>({country:String(j.country||j.country_name||""),region:String(j.region||""),city:String(j.city||"")});
+  try{const r=await fetch("https://get.geojs.io/v1/ip/geo.json");GEO=pick(await r.json())}
+  catch(e){try{const r=await fetch("https://ipwho.is/");GEO=pick(await r.json())}catch(e2){GEO={country:"",region:"",city:""}}}
+  try{sessionStorage.setItem("link-geo",JSON.stringify(GEO))}catch(e){}return GEO}
+const deviceType=()=>{const u=navigator.userAgent||"";return /iPad|Tablet/i.test(u)?"Tablet":/Mobi|Android|iPhone/i.test(u)?"Mobile":"Desktop"};
+async function logVisit(view){if(!sb)return;try{const g=await getGeo();let ref="";try{ref=document.referrer?new URL(document.referrer).hostname:""}catch(e){}
+  if(ref===location.hostname)ref="";await sb.rpc("log_visit",{p_visitor:visitorId(),p_page:view,p_country:g.country,p_region:g.region,p_city:g.city,p_device:deviceType(),p_referrer:ref})}catch(e){}}
+const PAGE_NAMES={home:"Home",catalog:"Search catalog",add:"Add resource",loans:"Interlibrary loans",dashboard:"Dashboard",reports:"Reports",libraries:"Libraries",analytics:"Site analytics",account:"Sign up / Log in"};
+const fmtWhen=s=>{if(!s)return"";const d=new Date(s);return d.toLocaleDateString("en-PH",{month:"short",day:"numeric",year:"numeric"})+" "+d.toLocaleTimeString("en-PH",{hour:"numeric",minute:"2-digit"})};
+async function loadAnalytics(){const out=$("anaOut");
+  if(!canSeeAll()){out.innerHTML=`<div class="panel empty"><strong>Site analytics</strong>Only the division librarian, the LR Manager and the LR PDO can see who visits Project LINK.</div>`;return}
+  out.innerHTML=`<p class="note">Loading site analytics…</p>`;
+  let a;try{a=await api("analytics",{days:anaDays})}catch(e){out.innerHTML=`<div class="panel empty"><strong>Site analytics is not set up yet</strong>${esc(e.message)}</div>`;return}
+  const seg=[[7,"7 days"],[30,"30 days"],[90,"90 days"],[365,"1 year"]].map(([d,l])=>`<button type="button" data-anadays="${d}" aria-pressed="${anaDays===d}">${l}</button>`).join("");
+  const days=[];const byDay=Object.fromEntries((a.perDay||[]).map(d=>[d.day,d]));
+  for(let i=Math.min(anaDays,90)-1;i>=0;i--){const t=new Date(Date.now()-i*864e5);const k=t.toLocaleDateString("en-CA",{timeZone:"Asia/Manila"});days.push({k,v:(byDay[k]||{}).visits||0,u:(byDay[k]||{}).visitors||0})}
+  const mx=Math.max(1,...days.map(d=>d.v));
+  const dayChart=`<div class="chart"><h4>Visits per day${anaDays>90?" (last 90 days)":""}</h4><div class="days" role="img" aria-label="Bar chart of visits per day">${days.map(d=>`<i style="height:${(d.v/mx*100).toFixed(1)}%" title="${esc(d.k)}: ${d.v} visit${d.v===1?"":"s"}, ${d.u} visitor${d.u===1?"":"s"}"></i>`).join("")}</div><div class="dayax"><span>${esc(days[0].k)}</span><span>${esc(days[days.length-1].k)}</span></div></div>`;
+  const items=(list,lab,sub)=>(list||[]).map(r=>({label:lab(r),sub:sub?sub(r):"",value:r.visits}));
+  const place=r=>[r.city,r.region].filter(Boolean).join(", ")||"Unknown";
+  const tbl=(cols,rows,empty)=>rows.length?`<div class="tablebox"><table><thead><tr>${cols.map(c=>`<th>${c}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table></div>`:`<div class="panel empty">${empty}</div>`;
+  out.innerHTML=`<div class="panel stack"><div class="row" style="justify-content:space-between;align-items:center"><h2>Site analytics</h2><div class="seg" role="group" aria-label="Period">${seg}</div></div>
+    <p class="note">Who opens Project LINK and from where. Locations are approximate (city or province, based on the internet connection). Names appear only for logged-in accounts; everyone else shows as <b>Guest</b>.${a.since?` Counting since ${esc(fmtDate(a.since))}.`:""}</p></div>`+
+   kpis([[a.visits.toLocaleString(),"visits"],[a.visitors.toLocaleString(),"unique visitors (devices)"],[a.users.toLocaleString(),"logged-in accounts"],[a.countries.toLocaleString(),"countries"],[a.today.toLocaleString(),"visits today"],[a.allTime.toLocaleString(),"visits since the start"]])+
+   dayChart+
+   `<div class="split"><div class="stack">${barChart("Visitors by country",items(a.byCountry,r=>r.name),"visits")}</div><div class="stack">${barChart("Visitors by city / province",items(a.byPlace,place,r=>r.country),"visits")}</div></div>`+
+   `<div class="split"><div class="stack">${barChart("Most visited pages",items(a.byPage,r=>PAGE_NAMES[r.name]||r.name),"visits")}</div><div class="stack">${barChart("Devices used",items(a.byDevice,r=>r.name),"visits")}${(a.byReferrer||[]).length?barChart("Where visitors came from",items(a.byReferrer,r=>r.name),"visits","Websites that linked to Project LINK (Messenger, Facebook, etc.).") :""}</div></div>`+
+   `<div class="stack"><h3>Logged-in accounts that visited</h3>${tbl(["Name","Visits","Last visit","Last seen from"],(a.topUsers||[]).map(u=>`<tr><td><b>${esc(u.name)}</b></td><td class="num">${u.visits}</td><td>${esc(fmtWhen(u.last))}</td><td>${esc(place(u))}${u.country?", "+esc(u.country):""}</td></tr>`),"No logged-in visits in this period.")}</div>`+
+   `<div class="stack"><h3>Latest visits</h3>${tbl(["When","Who","From","Page","Device"],(a.recent||[]).map(r=>`<tr><td>${esc(fmtWhen(r.at))}</td><td>${r.name?esc(r.name):`<span class="sub">Guest</span>`}</td><td>${esc(place(r))}${r.country?`<div class="sub">${esc(r.country)}</div>`:""}</td><td>${esc(PAGE_NAMES[r.page]||r.page)}</td><td>${esc(r.device)}</td></tr>`),"No visits yet.")}</div>`;}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-anadays]");if(b){anaDays=Number(b.dataset.anadays);loadAnalytics()}});
 
 /* ===================== home dashboard ===================== */
 async function loadHome(){const out=$("homeOut");
@@ -1014,8 +1061,8 @@ async function loadHome(){const out=$("homeOut");
   const tile=(b,s,href,warn)=>`<a class="tile${warn?" warn":""}" href="${href}"><b>${b}</b><span>${s}</span></a>`;
   const recent=list=>list&&list.length?`<div class="tablebox"><table><thead><tr><th>Date added</th><th>Title</th><th>Library</th><th class="num">Copies</th></tr></thead><tbody>${list.map(r=>`<tr><td>${fmtDate(r.createdAt)}</td><td><button class="link" data-rec="${r._id}">${esc(r.title)}</button><div class="sub">${esc(r.author||"")}</div></td><td>${esc(libName(r.schoolId))}</td><td class="num">${r.copies}</td></tr>`).join("")}</tbody></table></div>`:`<div class="panel empty">No books added yet.</div>`;
   const greet=`<div class="hello"><div class="eyebrow">${new Date().toLocaleDateString("en-PH",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}</div><h2>Good ${new Date().getHours()<12?"morning":new Date().getHours()<18?"afternoon":"evening"}, ${esc(ME.firstName||ME.name)}!</h2></div>`;
-  if(h.role==="admin"){
-    out.innerHTML=greet+`<div class="tiles">${tile(h.pendingAccounts,"sign-ups waiting for approval","#account",h.pendingAccounts>0)}${tile(h.librarians,"approved librarians","#account")}${tile(`${h.schoolsWithHoldings} / ${h.schools}`,"libraries with encoded books","#libraries")}${tile(h.titles.toLocaleString(),"titles in the union catalog","#catalog")}${tile(h.copies.toLocaleString(),"copies","#dashboard")}${tile(h.illPending,"loan requests pending","#loans",h.illPending>0)}${tile(h.illOverdue,"overdue loans","#loans",h.illOverdue>0)}</div>
+  if(h.role==="admin"||h.role==="division"){const D=h.role==="division";
+    out.innerHTML=greet+(D?`<p class="sub">${esc(ME.userType.replace(" (Division Office)",""))} · Division Office (CID – LRMS)</p>`:"")+`<div class="tiles">${D?tile(h.visits7==null?"Open":h.visits7.toLocaleString(),"site visits this week · see analytics","#analytics"):tile(h.pendingAccounts,"sign-ups waiting for approval","#account",h.pendingAccounts>0)}${tile(h.librarians,"approved librarians",D?"#reports":"#account")}${tile(`${h.schoolsWithHoldings} / ${h.schools}`,"libraries with encoded books","#libraries")}${tile(h.titles.toLocaleString(),"titles in the union catalog","#catalog")}${tile(h.copies.toLocaleString(),"copies","#dashboard")}${tile(h.illPending,"loan requests pending","#loans",h.illPending>0)}${tile(h.illOverdue,"overdue loans","#loans",h.illOverdue>0)}</div>
      <div class="split"><div class="stack"><h3>Recently added in the division</h3>${recent(h.recent)}</div>
      <div class="stack"><h3>Libraries with no books yet</h3>${h.noHoldings.length?`<div class="tablebox"><table><tbody>${h.noHoldings.map(s=>`<tr><td>${esc(s.name)}<div class="sub">${esc(s.district)}</div></td></tr>`).join("")}</tbody></table></div>`:`<div class="panel empty">Every registered library has encoded books.</div>`}</div></div>`;return}
   if(h.status!=="approved"){out.innerHTML=greet+`<div class="panel stack"><p>${ME.status==="rejected"?`<span class="pill poor">Not approved</span> Your registration was not approved. Check your details under <a href="#account">My profile</a> or contact the division librarian.`:`<span class="pill fair">Waiting for approval</span> Thank you for signing up. The division librarian will review your account. You can already search the union catalog.`}</p><div><a href="#catalog">Search the catalog</a></div></div>`;return}
@@ -1131,6 +1178,8 @@ document.addEventListener("click",async e=>{const t=e.target.closest("button");i
   if(ds.acct){const uid=ds.uid,box=$("acct-"+uid),u=users.find(x=>x.id===uid);if(!u||!box)return;
     const libSel=`<select id="as-${uid}"><option value="">Choose library</option>${schools.map(s=>`<option value="${esc(s.id)}"${s.id===u.schoolId?" selected":""}>${esc(s.name)}</option>`).join("")}</select>`;
     try{
+      if(ds.acct==="approve"&&isDivType(u.userType)){box.innerHTML=`<span class="confirm">Approve ${esc(u.name)} as <b>Division Office</b> staff (${esc(u.userType.replace(" (Division Office)",""))}, no library)? <button class="sm" data-acct="approve-div" data-uid="${uid}">Yes, approve</button><button class="ghost sm" data-acct="back" data-uid="${uid}">Back</button></span>`;return}
+      if(ds.acct==="approve-div"){await api("user_approve",{id:uid,division:true});toast(u.name+" is approved (Division Office)");loadUsers();return}
       if(ds.acct==="approve"&&!lib(u.schoolId||u.reqSchoolId)&&u.reqSchoolName){box.innerHTML=`<span class="confirm" style="flex-direction:column;align-items:flex-start"><span>New school: <b>${esc(u.reqSchoolName)}</b> (ID ${esc(u.reqSchoolId)}, ${esc(u.reqDistrict||"no district")})</span><button class="sm" data-acct="approve-new" data-uid="${uid}">Add this school and approve</button><span class="note">or choose an existing library:</span><span class="actions">${libSel}<button class="ghost sm" data-acct="approve-ok" data-uid="${uid}">Approve with this library</button></span><button class="ghost sm" data-acct="back" data-uid="${uid}">Back</button></span>`;return}
       if(ds.acct==="approve"||ds.acct==="move"){const pre=u.schoolId||u.reqSchoolId;box.innerHTML=`${libSel.replace(`value="${esc(pre)}"`,`value="${esc(pre)}" selected`)}<button class="sm" data-acct="approve-ok" data-uid="${uid}">${ds.acct==="move"?"Save library":"Confirm approval"}</button><button class="ghost sm" data-acct="back" data-uid="${uid}">Back</button>`;return}
       if(ds.acct==="approve-new"){await api("user_approve",{id:uid,createFromRequest:true});const r=await api("schools");schools=r.schools;libOptions();toast(`${u.reqSchoolName} added and ${u.name} approved`);loadUsers();return}
@@ -1178,6 +1227,7 @@ document.addEventListener("submit",async e=>{const f=e.target;
     catch(x){$("s_msg").textContent=x.message}return}
 });
 document.addEventListener("change",e=>{const id=e.target.id;
+  if(id==="g_type"||id==="m_type"){const p=id[0],div=isDivType(e.target.value),box=$(p+"_schoolBox"),n=$(p+"_divnote");if(box)box.hidden=div;if(n)n.hidden=!div;}
   if((id==="i_bdate"||id==="i_rdate")&&$("illForm"))syncDates();
   if(id==="i_bdate"&&$("binForm"))$("i_rdate").value=addMonth($("i_bdate").value);
   if(e.target.name==="i_bin"&&$("binForm")){const on=[...$("binForm").querySelectorAll("input[name=i_bin]:checked")].length,left=Math.max(0,2-myActiveBins);
@@ -1254,17 +1304,18 @@ async function api(action,data){data=data||{};
   case "register":{const f=S(data.firstName,80),l=S(data.lastName,80),email=S(data.email,190).toLowerCase(),phone=S(data.phone,40),username=S(data.username,60).toLowerCase(),pass=String(data.password||""),sid=cleanId(data.schoolId);
     if(!f||!l)throw new Error("Please type your first name and last name.");
     if(!data.userType)throw new Error("Please choose your user type.");
-    if(!sid)throw new Error("Please type your School ID.");
+    const div=isDivType(data.userType);
+    if(!sid&&!div)throw new Error("Please type your School ID.");
     if(!/^\S+@\S+\.\S+$/.test(email))throw new Error("Please type a valid email address.");
     if(!phone)throw new Error("Please type your mobile number.");
     if(!/^[a-z0-9._-]{4,30}$/.test(username))throw new Error("Username: 4 to 30 letters, numbers, dot, dash or underscore, no spaces.");
     if(pass.length<8)throw new Error("The password must have at least 8 characters.");
     if(!data.privacy)throw new Error("Please agree to the data privacy notice.");
     if(chk(await sb.rpc("username_taken",{u:username})))throw new Error("This username is already taken. Please choose another.");
-    const s=schools.find(x=>x.id===sid);
-    if(!s&&(!S(data.schoolName)||!S(data.district)))throw new Error("Your School ID is not yet in Project LINK. Please type your school name and district too.");
+    const s=div?null:schools.find(x=>x.id===sid);
+    if(!div&&!s&&(!S(data.schoolName)||!S(data.district)))throw new Error("Your School ID is not yet in Project LINK. Please type your school name and district too.");
     const profile={username,first_name:f,middle_name:S(data.middleName,80),last_name:l,ext_name:S(data.extName,20),name:fullName(f,data.middleName,l,data.extName),sex:S(data.sex,10),user_type:S(data.userType,60),designation:S(data.designation,120),phone,
-      req_school_id:sid,req_school_name:s?s.name:S(data.schoolName,200),req_category:s?s.category:S(data.category,60),req_district:s?s.district:S(data.district,120),req_enrollment:Math.max(0,parseInt(data.enrollment)||0),privacy_at:nowISO()};
+      req_school_id:div?"":sid,req_school_name:div?"":s?s.name:S(data.schoolName,200),req_category:div?"":s?s.category:S(data.category,60),req_district:div?"Division Office":s?s.district:S(data.district,120),req_enrollment:div?0:Math.max(0,parseInt(data.enrollment)||0),privacy_at:nowISO()};
     const r=await sb.auth.signUp({email,password:pass,options:{data:{profile},emailRedirectTo:location.href.split("#")[0]}});
     if(r.error){if(/already/i.test(r.error.message))throw new Error("This email is already registered. Log in instead, or use Forgot password.");throw new Error(r.error.message)}
     if(!r.data.session)throw new Error("Almost done! Open the confirmation email sent to "+email+", click the link, then log in here.");
@@ -1337,13 +1388,14 @@ async function api(action,data){data=data||{};
       ins.push({school_id:sid,accession_no:acc,call_no:S(r.callNo,80),title,author:S(r.author,300),pub_year:S(r.year,10),subject:SUBJ().includes(r.subject)?r.subject:"000 General Works",grade:S(r.grade,40),rtype:"Book",copies,cond:["Good","Fair","Poor"].includes(r.condition)?r.condition:"Good",fund:S(r.fund,80),date_received:D(r.dateReceived),dr_no:S(r.drNo,80),publisher:S(r.publisher,200),isbn:S(r.isbn,40),lang:"English",barcodes:makeBarcodes(sid,acc,copies)})});
     if(ins.length)chk(await sb.from("holdings").insert(ins));return{added:ins.length,skipped}}
   case "dashboard":return chk(await sb.rpc("dashboard_stats"));
+  case "analytics":{needLogin();return chk(await sb.rpc("site_analytics",{p_days:Math.max(1,Math.min(3650,Number(data.days)||30))}))}
   case "profile":{const rows=chk(await sb.rpc("subject_profile",{p_school:data.school||"",p_cat:data.cat||""}))||[];return{rows,name:scopeName(data)}}
   case "report":return await buildReportData(data);
   case "util":{const r=await sb.rpc("utilization_stats",{p_school:data.school||"",p_cat:data.cat||""});
     if(r.error&&/function|does not exist|schema cache/i.test(r.error.message||""))throw new Error("This report needs the database update. The division librarian runs update 2 in Supabase first.");
     return chk(r)||{}}
   case "ill_list":{if(!ME)return{rows:[]};let q=sb.from("ill").select("*").order("requested_at",{ascending:false}).limit(2000);
-    if(ME.role==="admin"&&data.school)q=q.or(`lender_id.eq.${cleanId(data.school)},borrower_id.eq.${cleanId(data.school)}`);
+    if((ME.role==="admin"||isDiv())&&data.school)q=q.or(`lender_id.eq.${cleanId(data.school)},borrower_id.eq.${cleanId(data.school)}`);
     return{rows:(chk(await q)||[]).map(illOut)}}
   case "rec_extra":{const id=Number(data.id);const c=await sb.rpc("title_copies",{p_id:id});const copies=c.error?[]:(c.data||[]);
     if(data.copiesOnly)return{copies};
@@ -1380,6 +1432,7 @@ async function api(action,data){data=data||{};
   case "users_list":{needAdmin();const rows=chk(await sb.rpc("admin_users"))||[];return{users:rows.map(p=>meOut(p))}}
   case "user_approve":{needAdmin();let sid=cleanId(data.schoolId);
     const u=chk(await sb.from("profiles").select("*").eq("id",data.id).maybeSingle());if(!u)throw new Error("Account not found.");
+    if(data.division){if(!isDivType(u.user_type))throw new Error("Only LR Manager and LR PDO accounts can be approved as Division Office.");chk(await sb.from("profiles").update({status:"approved",school_id:null,approved_at:nowISO()}).eq("id",data.id));return{ok:true}}
     if(data.createFromRequest){sid=cleanId(u.req_school_id);if(!sid||!u.req_school_name)throw new Error("This sign-up has no school details. Choose an existing library instead.");
       if(!schools.find(x=>x.id===sid))chk(await sb.from("schools").insert({id:sid,name:u.req_school_name,district:u.req_district||"Not set",category:CATS.includes(u.req_category)?u.req_category:CATS[2],librarian:u.name,enrollment:u.req_enrollment||0}));
       schools=await allSchools()}
