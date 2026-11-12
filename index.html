@@ -201,6 +201,9 @@ label.check{flex-direction:row;gap:8px;align-items:center;font-weight:500;margin
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:10px 0}
 @media (max-width:700px){.charts{grid-template-columns:1fr}.chart .prow{grid-template-columns:1fr 70px}.chart .ptrack{grid-column:1/-1;order:3}}
 #illOut > .stack > h3{color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.35)}
+header.top .who{max-width:min(100%,560px)}header.top .role{justify-content:flex-end;text-align:right}
+#locLine{flex-basis:100%;order:3;text-align:right;font-size:12px;opacity:.92}#locLine:empty{display:none}
+@media (max-width:700px){header.top .role{justify-content:flex-start;text-align:left}#locLine{text-align:left}}
 </style>
 </head>
 <body>
@@ -1125,10 +1128,10 @@ function gpsGeo(fromClick){if(GEO_GPS)return Promise.resolve(GEO_GPS);
     {enableHighAccuracy:true,timeout:30000,maximumAge:600000}));
   return gpsGeo.p}
 function showLoc(){const el=$("locLine");if(!el)return;if(!ME){el.innerHTML="";return}
-  if(GEO_GPS&&GEO_GPS.city)el.innerHTML=`· Location: <b>${esc([GEO_GPS.city,GEO_GPS.region].filter(Boolean).join(", "))}</b>`;
-  else if(GPS_STATE==="rough")el.innerHTML=`· <span title="This computer has no precise location (no Wi-Fi or GPS), so your library's location is used.">Location: your library</span>`;
-  else if(GPS_STATE==="asking")el.innerHTML=`· <span class="note">Getting your location… click <b>Allow</b> if the browser asks.</span>`;
-  else el.innerHTML=`· <button type="button" class="link" id="locBtn">Share my location</button>`}
+  if(GEO_GPS&&GEO_GPS.city)el.innerHTML=`Location: <b>${esc([GEO_GPS.city,GEO_GPS.region].filter(Boolean).join(", "))}</b>`;
+  else if(GPS_STATE==="rough")el.innerHTML=`<span title="This computer has no precise location (no Wi-Fi or GPS), so your library's location is used.">Location: your library</span>`;
+  else if(GPS_STATE==="asking")el.innerHTML=`<span class="note">Getting your location… click <b>Allow</b> if the browser asks.</span>`;
+  else el.innerHTML=`<button type="button" class="link" id="locBtn">Share my location</button>`}
 async function getGeo(){if(ME){const g=await gpsGeo();if(g&&(g.city||g.country))return g}return ipGeo()}
 const deviceType=()=>{const u=navigator.userAgent||"";return /iPad|Tablet/i.test(u)?"Tablet":/Mobi|Android|iPhone/i.test(u)?"Mobile":"Desktop"};
 async function logVisit(view,force){if(!sb)return;try{const g=await getGeo();let ref="";try{ref=document.referrer?new URL(document.referrer).hostname:""}catch(e){}
