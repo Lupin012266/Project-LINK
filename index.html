@@ -366,6 +366,7 @@ label.check{flex-direction:row;gap:8px;align-items:center;font-weight:500;margin
     <div class="panel row">
       <label class="grow">Report
         <select id="r_type">
+          <option value="lprofile">Library Profile (one library, ready to print)</option>
           <option value="holdings">Holdings Report (with DR/IAR and barcodes)</option>
           <option value="acq">Acquisitions Report by Date Received</option>
           <option value="profile">Collection Profile by Subject (chart)</option>
@@ -386,6 +387,7 @@ label.check{flex-direction:row;gap:8px;align-items:center;font-weight:500;margin
     </div>
     <div class="row">
       <button type="button" id="r_print">Print report</button>
+      <button type="button" class="ghost" id="r_word" hidden>Download Word file</button>
       <button type="button" class="ghost" id="r_dl">Download Excel (CSV)</button>
       <button type="button" class="ghost" id="r_lbl">Print barcode labels</button>
       <button type="button" class="ghost" id="r_marc">Download MARC records for Koha (MARCXML)</button>
@@ -507,7 +509,8 @@ addEventListener("hashchange",route);
 function applyRole(){libOptions();
   const rl=$("roleLine");
   if(!ME)rl.innerHTML=`Browsing as a visitor · <a href="#account">Log in</a>`;
-  else rl.innerHTML=`<span>Logged in as <b>${esc(ME.name)}</b> · ${isAdmin()?"Division librarian":isDiv()?esc(ME.userType.replace(" (Division Office)",""))+" · Division Office":isApproved()?esc(libName(ME.schoolId)):ME.status==="rejected"?"not approved":"waiting for approval"}</span><button type="button" class="ghost sm" id="logoutBtn">Log out</button>`;
+  else rl.innerHTML=`<span>Logged in as <b>${esc(ME.name)}</b> · ${isAdmin()?"Division librarian":isDiv()?esc(ME.userType.replace(" (Division Office)",""))+" · Division Office":isApproved()?esc(libName(ME.schoolId)):ME.status==="rejected"?"not approved":"waiting for approval"}</span><span id="locLine"></span><button type="button" class="ghost sm" id="logoutBtn">Log out</button>`;
+  if(ME){showLoc();gpsGeo()}
   $("acctLabel").textContent=!ME?"Sign up / Log in":isAdmin()?"Librarian accounts":"My profile";$("homeTab").hidden=!ME;$("anaTab").hidden=!canSeeAll();
   const b=$("acctBanner");b.hidden=true;
   if(ME&&ME.mustChange){b.hidden=false;b.innerHTML=`The division librarian reset your password. Please <a href="#account">set a new password</a> now.`}
@@ -831,12 +834,13 @@ function reportParams(){return{type:$("r_type").value,school:$("r_school").value
 function reportTableHTML(r){return r.rows.length?`<div class="tablebox"><table><thead><tr>${r.cols.map(c=>`<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${r.rows.map(row=>`<tr>${row.map(v=>`<td${typeof v==="number"?' class="num"':""}>${esc(/^\d{4}-\d{2}-\d{2}$/.test(String(v))?fmtDate(v):v)}</td>`).join("")}</tr>`).join("")}</tbody></table></div><p class="note">${r.rows.length.toLocaleString()} row(s)</p>`:`<div class="empty"><strong>Nothing to report yet</strong>This report fills in as libraries encode their holdings and loans.</div>`}
 function reportHeadHTML(title,scope){const today=new Date().toLocaleDateString("en-PH",{year:"numeric",month:"long",day:"numeric"});
   return `<div class="reporthead"><div>${esc(REGION)}</div><div><b>${esc(DIVISION)}</b></div><h3>${esc(title)}</h3><div>${esc(scope)} · as of ${today}</div></div>`}
-async function loadReport(){const p=reportParams();const acq=p.type==="acq";$("r_fromL").hidden=!acq;$("r_toL").hidden=!acq;
+async function loadReport(){const p=reportParams();$("r_word").hidden=true;const acq=p.type==="acq";$("r_fromL").hidden=!acq;$("r_toL").hidden=!acq;
   $("reportOut").innerHTML=`<p class="note">Loading…</p>`;
   try{let r;
     if(p.type==="profile"){const pr=await api("profile",p);const P=profileData(pr.rows);
       r={title:"Collection Profile by Subject",cols:["Rank","Subject / Classification","Titles","Copies","Share of Collection"],rows:P.total?P.rows.map((x,i)=>[i+1,x.sub,x.titles,x.copies,x.copies?x.pct.toFixed(1)+"%":"none"]):[],scopeName:pr.name,chart:P};}
     else if(p.type==="util"||p.type==="size")r=await utilReport(p);
+    else if(p.type==="lprofile"){$("r_word").hidden=false;r=await libProfile(p);lastReport=r;$("reportOut").innerHTML=r.html;return}
     else r=await api("report",p);
     lastReport=r;
     $("reportOut").innerHTML=reportHeadHTML(r.title,r.scopeName)+(r.html||"")+(r.chart&&r.chart.total?profileHTML(r.chart)+"<br>":"")+reportTableHTML(r);
@@ -877,6 +881,7 @@ function printPage(title,body){const w=window.open("","_blank");if(!w){toast("Al
   w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title><style>${PRINT_CSS}</style></head><body>${body}<script>window.onload=function(){setTimeout(function(){window.print()},300)}<\/script></body></html>`);w.document.close();}
 const SIGN=`<div class="sign"><div>Prepared by</div><div>Noted by: Division Librarian II</div></div>`;
 function printReport(){const r=lastReport;if(!r){toast("Open a report first.");return}
+  if(r.lprofile){const w=$("lpWrap");if(!w)return;printPage(r.title,`<style>${LP_CSS}</style>`+lpClean(w.innerHTML));return}
   printPage(r.title,reportHeadHTML(r.title,r.scopeName)+(r.html||"")+(r.chart&&r.chart.total?profileHTML(r.chart)+"<br>":"")+reportTableHTML(r)+SIGN)}
 function downloadCSV(){const r=lastReport;if(!r){toast("Open a report first.");return}const c=v=>`"${String(v??"").replace(/"/g,'""')}"`;
   const lines=[[DIVISION],[r.title],[r.scopeName+" - as of "+new Date().toLocaleDateString("en-PH")],[],r.cols,...r.rows].map(row=>row.map(c).join(","));
@@ -889,6 +894,81 @@ async function downloadMarc(){const r=await fullRecords();if(!r)return;if(!r.row
   const recs=r.rows.map(h=>`  <record>\n    <leader>${LEADER}</leader>\n`+marcFields(h).map(f=>f.value!==undefined?`    <controlfield tag="${f.tag}">${x(f.value)}</controlfield>`:
     `    <datafield tag="${f.tag}" ind1="${f.i1}" ind2="${f.i2}">\n`+f.subs.map(s=>`      <subfield code="${s[0]}">${x(s[1])}</subfield>`).join("\n")+`\n    </datafield>`).join("\n")+`\n  </record>`).join("\n");
   downloadText(`Project-LINK-MARC-${r.name.replace(/[^\w]+/g,"-")}.xml`,`<?xml version="1.0" encoding="UTF-8"?>\n<collection xmlns="http://www.loc.gov/MARC21/slim">\n${recs}\n</collection>\n`,"application/xml")}
+
+/* ===================== library profile ===================== */
+const LP_CSS=`.lp{font-family:"Bookman Old Style",Georgia,serif;font-size:11.5px;color:#000}.lp .lph{text-align:center;line-height:1.35;border-bottom:2px solid #000;padding-bottom:6px;margin-bottom:10px}
+.lp .lpf{border-top:1px solid #000;margin-top:16px;padding-top:4px;font-size:10px;text-align:center;line-height:1.35}.lp h2{text-align:center;font-size:16px;margin:8px 0 2px;letter-spacing:.06em}.lp .asof{text-align:center;margin-bottom:10px}
+.lp h3{font-size:12.5px;margin:12px 0 5px;text-transform:uppercase}.lp table{border-collapse:collapse;width:100%;margin-bottom:4px}.lp th,.lp td{border:1px solid #777;padding:3px 6px;text-align:left;vertical-align:top}.lp th{background:#e8e8e8}
+.lp td.num,.lp th.num{text-align:right}.lp .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}.lp .sig{display:flex;justify-content:space-between;margin-top:34px}.lp .sig>div{width:42%;text-align:center}.lp .sig .ln{border-top:1px solid #000;margin-top:30px;padding-top:3px;font-weight:bold}
+.lp .kp{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:4px 0 6px}.lp .kp div{border:1px solid #777;padding:5px;text-align:center}.lp .kp b{display:block;font-size:15px}.lp td.fill{min-width:120px}`;
+const lpKey=(sid,k)=>`link-lp-${sid}-${k}`;
+const lpGet=(sid,k,def)=>{const v=store(lpKey(sid,k));return v==null?def:v};
+const lpEd=(sid,k,def,tag)=>`<${tag||"div"} class="lped" contenteditable="true" data-lpsid="${esc(sid)}" data-lpkey="${esc(k)}">${lpGet(sid,k,def)}</${tag||"div"}>`;
+const lpClean=h=>h.replace(/ contenteditable="true"/g,"").replace(/ class="lped"/g,"");
+document.addEventListener("input",e=>{const t=e.target.closest&&e.target.closest("[data-lpkey]");if(t)store(lpKey(t.dataset.lpsid,t.dataset.lpkey),t.innerHTML)});
+const countBy=(rows,f,w)=>{const m={};rows.forEach(h=>{const k=f(h)||"Not stated";m[k]=(m[k]||0)+(w?w(h):1)});return Object.entries(m).sort((a,b)=>b[1]-a[1])};
+async function libProfile(p){
+  const sid=p.school||lockedLib();
+  if(!sid)return{lprofile:true,title:"Library Profile",html:`<div class="empty"><strong>Choose one library</strong>Pick a library in the <b>Library</b> box above to make its Library Profile.</div>`};
+  const s=lib(sid)||{id:sid,name:libName(sid)};
+  const [rec,u]=await Promise.all([api("records_full",{school:sid}),api("util",{school:sid}).catch(()=>({}))]);
+  const rows=rec.rows||[],titles=rows.length,copies=rows.reduce((a,h)=>a+(Number(h.copies)||0),0);
+  const me=((u.schools||[]).find(x=>x.id===sid))||{};
+  const enr=Number(s.enrollment)||0,hub=s.category==="Library Hub";
+  const pct=(n,t)=>t?(n/t*100).toFixed(1)+"%":"–";
+  const tbl=(head,list,total)=>`<table><thead><tr><th>${head}</th><th class="num">Copies</th><th class="num">Share</th></tr></thead><tbody>${list.map(([k,v])=>`<tr><td>${esc(k)}</td><td class="num">${v.toLocaleString()}</td><td class="num">${pct(v,total)}</td></tr>`).join("")||`<tr><td colspan="3">No records yet</td></tr>`}</tbody></table>`;
+  const subj=countBy(rows,h=>h.subject,h=>Number(h.copies)||0),grade=countBy(rows,h=>h.grade,h=>Number(h.copies)||0),type=countBy(rows,h=>h.type,h=>Number(h.copies)||0);
+  const fund=countBy(rows,h=>h.fund,h=>Number(h.copies)||0),cond=countBy(rows,h=>h.condition,h=>Number(h.copies)||0),lang=countBy(rows,h=>h.language,h=>Number(h.copies)||0);
+  const age=countBy(rows,h=>{const y=parseInt(h.year);return !y?"Year not stated":y>=2020?"2020 and newer":y>=2010?"2010–2019":y>=2000?"2000–2009":"Before 2000"},h=>Number(h.copies)||0);
+  const recent=rows.slice().sort((a,b)=>String(b.dateReceived||b.createdAt).localeCompare(String(a.dateReceived||a.createdAt))).slice(0,10);
+  const today=new Date().toLocaleDateString("en-PH",{year:"numeric",month:"long",day:"numeric"});
+  const head=lpEd(sid,"head",`Republic of the Philippines<br><b>Department of Education</b><br>Region XIII – Caraga<br>Schools Division of Agusan del Norte<br><b>${esc(String(s.name||"").toUpperCase())}</b><br>${esc(s.district||"")}, Agusan del Norte`);
+  const foot=lpEd(sid,"foot",`School address · Contact number · Email address · Facebook page`);
+  const fill=(k,def)=>`<td class="fill">${lpEd(sid,k,def||"&nbsp;","div")}</td>`;
+  const html=`<p class="note">Click any <b>yellow-outlined</b> text to edit it, such as the header, footer, library hours or school head. Your changes are saved on this computer. Then click <b>Print report</b>, or <b>Download Word file</b> to edit it in Word.</p>
+  <div id="lpWrap"><div class="lp">
+   <div class="lph">${head}</div>
+   <h2>LIBRARY PROFILE</h2><div class="asof">As of ${today}</div>
+   <h3>I. Library information</h3>
+   <table><tbody>
+    <tr><th style="width:34%">Name of school / library</th><td>${esc(s.name||"")}</td></tr>
+    <tr><th>School ID</th><td>${esc(sid)}</td></tr>
+    <tr><th>District / municipality</th><td>${esc(s.district||"")}</td></tr>
+    <tr><th>Type of library</th><td>${esc(s.category||"")}</td></tr>
+    <tr><th>Librarian / library-in-charge</th>${fill("libn",esc(s.librarian||"&nbsp;"))}</tr>
+    <tr><th>School head</th>${fill("head2")}</tr>
+    <tr><th>Number of learners</th><td>${enr?enr.toLocaleString():"Not yet entered in Project LINK"}</td></tr>
+    <tr><th>Location of the library in the school</th>${fill("where")}</tr>
+    <tr><th>Library hours</th>${fill("hours")}</tr>
+    <tr><th>Floor area / seating capacity</th>${fill("area")}</tr>
+   </tbody></table>
+   <h3>II. Collection summary</h3>
+   <div class="kp"><div><b>${titles.toLocaleString()}</b>titles</div><div><b>${copies.toLocaleString()}</b>copies</div><div><b>${enr&&!hub?(copies/enr).toFixed(2):"–"}</b>${hub?"(library hub)":"books per learner"}</div><div><b>${subj.length}</b>subject areas</div></div>
+   ${tbl("Subject / classification",subj,copies)}
+   <div class="two"><div>${tbl("Grade level",grade,copies)}</div><div>${tbl("Type of material",type,copies)}</div></div>
+   <div class="two"><div>${tbl("Source of fund",fund,copies)}</div><div>${tbl("Condition",cond,copies)}</div></div>
+   <div class="two"><div>${tbl("Language",lang,copies)}</div><div>${tbl("Year of publication",age,copies)}</div></div>
+   <h3>III. Use of the collection (Project LINK)</h3>
+   <table><tbody>
+    <tr><th style="width:60%">Times book records were opened</th><td class="num">${Number(u.views||0).toLocaleString()}</td></tr>
+    <tr><th>Titles borrowed at least once</th><td class="num">${Number(u.used||0).toLocaleString()} of ${titles.toLocaleString()}</td></tr>
+    <tr><th>Interlibrary loans: lent to other libraries</th><td class="num">${Number(me.lent||0).toLocaleString()}</td></tr>
+    <tr><th>Interlibrary loans: borrowed from other libraries</th><td class="num">${Number(me.borrowed||0).toLocaleString()}</td></tr>
+   </tbody></table>
+   ${(u.top||[]).length?`<table><thead><tr><th>Most borrowed titles</th><th class="num">Times borrowed</th></tr></thead><tbody>${(u.top||[]).slice(0,5).map(t=>`<tr><td>${esc(t.title)}</td><td class="num">${Number(t.loans)}</td></tr>`).join("")}</tbody></table>`:""}
+   <h3>IV. Latest additions</h3>
+   <table><thead><tr><th>Date received</th><th>Title</th><th>Call no.</th><th class="num">Copies</th></tr></thead><tbody>${recent.map(h=>`<tr><td>${esc(fmtDate(h.dateReceived||h.createdAt)||"")}</td><td>${esc(h.title)}</td><td>${esc(h.callNo||"")}</td><td class="num">${h.copies}</td></tr>`).join("")||`<tr><td colspan="4">No records yet</td></tr>`}</tbody></table>
+   <div class="sig"><div>Prepared by:<div class="ln">${lpEd(sid,"prep",esc(s.librarian||"Name of librarian"))}</div>${lpEd(sid,"prepPos","School Librarian / Library-in-Charge")}</div>
+    <div>Noted by:<div class="ln">${lpEd(sid,"noted","Name of school head")}</div>${lpEd(sid,"notedPos","School Head")}</div></div>
+   <div class="lpf">${foot}</div>
+  </div></div><style>${LP_CSS}#lpWrap .lped{outline:1px dashed #c8902a;outline-offset:1px;min-height:1em}#lpWrap .lped:focus{outline:2px solid #c8902a;background:#fffbea}#lpWrap{background:#fff;color:#000;padding:16px;border-radius:6px}</style>`;
+  return{lprofile:true,title:"Library Profile – "+(s.name||sid),scopeName:s.name||sid,html,cols:[],rows:[],sid,name:s.name||sid}}
+function downloadLpWord(){const r=lastReport;if(!r||!r.lprofile||!$("lpWrap")){toast("Open a Library Profile first.");return}
+  const body=lpClean($("lpWrap").innerHTML);
+  const doc=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>${esc(r.title)}</title>
+<style>${LP_CSS}@page Section1{size:8.5in 13in;margin:0.7in}div.Section1{page:Section1}.lp .two{display:block}.lp .kp{display:block}.lp .kp div{display:inline-block;width:22%}.lp .sig{display:block}.lp .sig>div{display:inline-block;width:45%}</style></head>
+<body><div class="Section1">${body}</div></body></html>`;
+  downloadText(("Library-Profile-"+r.name).replace(/[^\w-]+/g,"-")+".doc","﻿"+doc,"application/msword")}
 
 /* ===================== libraries ===================== */
 function renderLibraries(){
@@ -1026,20 +1106,34 @@ async function ipGeo(){if(GEO)return GEO;try{const c=sessionStorage.getItem("lin
   try{const r=await fetch("https://get.geojs.io/v1/ip/geo.json");GEO=pick(await r.json())}
   catch(e){try{const r=await fetch("https://ipwho.is/");GEO=pick(await r.json())}catch(e2){GEO={country:"",region:"",city:""}}}
   try{sessionStorage.setItem("link-geo",JSON.stringify(GEO))}catch(e){}return GEO}
-let GEO_GPS=null,GPS_ASKED=false;
-/* logged-in accounts: the device's real location (browser asks permission once), city level only */
-async function gpsGeo(){if(GEO_GPS)return GEO_GPS;try{const c=sessionStorage.getItem("link-geo-gps");if(c)return GEO_GPS=JSON.parse(c)}catch(e){}
-  if(GPS_ASKED||!navigator.geolocation)return null;GPS_ASKED=true;
-  const pos=await new Promise(res=>navigator.geolocation.getCurrentPosition(res,()=>res(null),{enableHighAccuracy:false,timeout:15000,maximumAge:3600000}));
-  if(!pos)return null;
-  try{const r=await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${pos.coords.latitude.toFixed(3)}&longitude=${pos.coords.longitude.toFixed(3)}&localityLanguage=en`);const j=await r.json();
-    GEO_GPS={country:String(j.countryName||""),region:String(j.principalSubdivision||""),city:String(j.city||j.locality||"")};
-    try{sessionStorage.setItem("link-geo-gps",JSON.stringify(GEO_GPS))}catch(e){}return GEO_GPS}catch(e){return null}}
+let GEO_GPS=null,GPS_STATE="";
+/* logged-in accounts: the device's real location (the browser asks permission), city level only */
+function gpsGeo(fromClick){if(GEO_GPS)return Promise.resolve(GEO_GPS);
+  try{const c=sessionStorage.getItem("link-geo-gps");if(c){GEO_GPS=JSON.parse(c);showLoc();return Promise.resolve(GEO_GPS)}}catch(e){}
+  if(!navigator.geolocation||(GPS_STATE==="denied"&&!fromClick))return Promise.resolve(null);
+  if(gpsGeo.p&&!fromClick)return gpsGeo.p;
+  GPS_STATE="asking";showLoc();
+  gpsGeo.p=new Promise(res=>navigator.geolocation.getCurrentPosition(async pos=>{
+      if(!(pos.coords.accuracy<=3000)){GPS_STATE="rough";showLoc();gpsGeo.p=null;res(null);if(fromClick)toast("Your computer could only guess your location from the internet (not precise), so Project LINK will use your library's location instead.");return}
+      try{const r=await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${pos.coords.latitude.toFixed(3)}&longitude=${pos.coords.longitude.toFixed(3)}&localityLanguage=en`);const j=await r.json();
+        GEO_GPS={country:String(j.countryName||""),region:String(j.principalSubdivision||""),city:String(j.city||j.locality||""),src:"device"};
+        try{sessionStorage.setItem("link-geo-gps",JSON.stringify(GEO_GPS))}catch(e){}GPS_STATE="ok";showLoc();res(GEO_GPS);
+        if(fromClick){logVisit("location",true);toast("Location saved: "+[GEO_GPS.city,GEO_GPS.region].filter(Boolean).join(", "))}}
+      catch(e){GPS_STATE="error";showLoc();res(null)}},
+    err=>{GPS_STATE=err&&err.code===1?"denied":"error";showLoc();gpsGeo.p=null;res(null);
+      if(fromClick)toast(GPS_STATE==="denied"?"Location is blocked. Click the lock icon beside the web address, set Location to Allow, then reload.":"Couldn't get your location. Check that Location is turned on in Windows settings.")},
+    {enableHighAccuracy:true,timeout:30000,maximumAge:600000}));
+  return gpsGeo.p}
+function showLoc(){const el=$("locLine");if(!el)return;if(!ME){el.innerHTML="";return}
+  if(GEO_GPS&&GEO_GPS.city)el.innerHTML=`· Location: <b>${esc([GEO_GPS.city,GEO_GPS.region].filter(Boolean).join(", "))}</b>`;
+  else if(GPS_STATE==="rough")el.innerHTML=`· <span title="This computer has no precise location (no Wi-Fi or GPS), so your library's location is used.">Location: your library</span>`;
+  else if(GPS_STATE==="asking")el.innerHTML=`· <span class="note">Getting your location… click <b>Allow</b> if the browser asks.</span>`;
+  else el.innerHTML=`· <button type="button" class="link" id="locBtn">Share my location</button>`}
 async function getGeo(){if(ME){const g=await gpsGeo();if(g&&(g.city||g.country))return g}return ipGeo()}
 const deviceType=()=>{const u=navigator.userAgent||"";return /iPad|Tablet/i.test(u)?"Tablet":/Mobi|Android|iPhone/i.test(u)?"Mobile":"Desktop"};
-async function logVisit(view){if(!sb)return;try{const g=await getGeo();let ref="";try{ref=document.referrer?new URL(document.referrer).hostname:""}catch(e){}
-  if(ref===location.hostname)ref="";await sb.rpc("log_visit",{p_visitor:visitorId(),p_page:view,p_country:g.country,p_region:g.region,p_city:g.city,p_device:deviceType(),p_referrer:ref})}catch(e){}}
-const PAGE_NAMES={home:"Home",catalog:"Search catalog",add:"Add resource",loans:"Interlibrary loans",dashboard:"Dashboard",reports:"Reports",libraries:"Libraries",analytics:"Site analytics",account:"Sign up / Log in"};
+async function logVisit(view,force){if(!sb)return;try{const g=await getGeo();let ref="";try{ref=document.referrer?new URL(document.referrer).hostname:""}catch(e){}
+  if(ref===location.hostname)ref="";await sb.rpc("log_visit",{p_visitor:visitorId(),p_page:view,p_country:g.country,p_region:g.region,p_city:g.city,p_device:deviceType(),p_referrer:ref,p_source:g.src==="device"?"device":"internet"})}catch(e){}}
+const PAGE_NAMES={home:"Home",catalog:"Search catalog",add:"Add resource",loans:"Interlibrary loans",dashboard:"Dashboard",reports:"Reports",libraries:"Libraries",analytics:"Site analytics",account:"Sign up / Log in",location:"Shared location"};
 const fmtWhen=s=>{if(!s)return"";const d=new Date(s);return d.toLocaleDateString("en-PH",{month:"short",day:"numeric",year:"numeric"})+" "+d.toLocaleTimeString("en-PH",{hour:"numeric",minute:"2-digit"})};
 async function loadAnalytics(){const out=$("anaOut");
   if(!canSeeAll()){out.innerHTML=`<div class="panel empty"><strong>Site analytics</strong>Only the division librarian, the LR Manager and the LR PDO can see who visits Project LINK.</div>`;return}
@@ -1051,17 +1145,20 @@ async function loadAnalytics(){const out=$("anaOut");
   const mx=Math.max(1,...days.map(d=>d.v));
   const dayChart=`<div class="chart"><h4>Visits per day${anaDays>90?" (last 90 days)":""}</h4><div class="days" role="img" aria-label="Bar chart of visits per day">${days.map(d=>`<i style="height:${(d.v/mx*100).toFixed(1)}%" title="${esc(d.k)}: ${d.v} visit${d.v===1?"":"s"}, ${d.u} visitor${d.u===1?"":"s"}"></i>`).join("")}</div><div class="dayax"><span>${esc(days[0].k)}</span><span>${esc(days[days.length-1].k)}</span></div></div>`;
   const items=(list,lab,sub)=>(list||[]).map(r=>({label:lab(r),sub:sub?sub(r):"",value:r.visits}));
-  const place=r=>[r.city,r.region].filter(Boolean).join(", ")||"Unknown";
+  const place=r=>r.src==="internet"||!r.src?`${r.country||"Unknown country"}`:[r.city,r.region].filter(Boolean).join(", ")||"Unknown";
+  const srcLab=r=>({device:"device location",library:"library location"})[r.src]||"country only";
+  const pl={};(a.byPlace||[]).forEach(r=>{const k=place(r);pl[k]=pl[k]||{label:k,sub:srcLab(r),value:0};pl[k].value+=r.visits});
+  const placeItems=Object.values(pl).sort((p,q)=>q.value-p.value);
   const tbl=(cols,rows,empty)=>rows.length?`<div class="tablebox"><table><thead><tr>${cols.map(c=>`<th>${c}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table></div>`:`<div class="panel empty">${empty}</div>`;
   out.innerHTML=`<div class="panel stack"><div class="row" style="justify-content:space-between;align-items:center"><h2>Site analytics</h2><div class="seg" role="group" aria-label="Period">${seg}</div></div>
-    <p class="note">Who opens Project LINK and from where. Logged-in accounts show the city where their device really is (the browser asks them once to allow location; only the city is saved). If they don't allow it, and for <b>Guests</b>, the location is approximate, based on the internet provider.${a.since?` Counting since ${esc(fmtDate(a.since))}.`:""}</p></div>`+
+    <p class="note">Who opens Project LINK and from where. Logged-in accounts show the city where their device is, if they allow the browser to share it (only the city is saved). If they don't, their library's town is used. For <b>Guests</b>, only the country is counted.${a.since?` Counting since ${esc(fmtDate(a.since))}.`:""}</p></div>`+
    kpis([[a.visits.toLocaleString(),"visits"],[a.visitors.toLocaleString(),"unique visitors (devices)"],[a.users.toLocaleString(),"logged-in accounts"],[a.countries.toLocaleString(),"countries"],[a.today.toLocaleString(),"visits today"],[a.allTime.toLocaleString(),"visits since the start"]])+
    dayChart+
-   `<div class="split"><div class="stack">${barChart("Visitors by country",items(a.byCountry,r=>r.name),"visits")}</div><div class="stack">${barChart("Visitors by city / province",items(a.byPlace,place,r=>r.country),"visits")}</div></div>`+
+   `<div class="split"><div class="stack">${barChart("Visitors by country",items(a.byCountry,r=>r.name),"visits")}</div><div class="stack">${barChart("Visitors by city / province",placeItems,"visits","Device location: the logged-in user allowed the browser to share where they are. Library location: logged-in user who did not share; their library's town is used. Guests: only the country is counted, because a city guessed from the internet provider is often wrong.")}</div></div>`+
    `<div class="split"><div class="stack">${barChart("Most visited pages",items(a.byPage,r=>PAGE_NAMES[r.name]||r.name),"visits")}</div><div class="stack">${barChart("Devices used",items(a.byDevice,r=>r.name),"visits")}${(a.byReferrer||[]).length?barChart("Where visitors came from",items(a.byReferrer,r=>r.name),"visits","Websites that linked to Project LINK (Messenger, Facebook, etc.).") :""}</div></div>`+
-   `<div class="stack"><h3>Logged-in accounts that visited</h3>${tbl(["Name","Visits","Last visit","Last seen from"],(a.topUsers||[]).map(u=>`<tr><td><b>${esc(u.name)}</b></td><td class="num">${u.visits}</td><td>${esc(fmtWhen(u.last))}</td><td>${esc(place(u))}${u.country?", "+esc(u.country):""}</td></tr>`),"No logged-in visits in this period.")}</div>`+
-   `<div class="stack"><h3>Latest visits</h3>${tbl(["When","Who","From","Page","Device"],(a.recent||[]).map(r=>`<tr><td>${esc(fmtWhen(r.at))}</td><td>${r.name?esc(r.name):`<span class="sub">Guest</span>`}</td><td>${esc(place(r))}${r.country?`<div class="sub">${esc(r.country)}</div>`:""}</td><td>${esc(PAGE_NAMES[r.page]||r.page)}</td><td>${esc(r.device)}</td></tr>`),"No visits yet.")}</div>`;}
-document.addEventListener("click",e=>{const b=e.target.closest("[data-anadays]");if(b){anaDays=Number(b.dataset.anadays);loadAnalytics()}});
+   `<div class="stack"><h3>Logged-in accounts that visited</h3>${tbl(["Name","Visits","Last visit","Last seen from"],(a.topUsers||[]).map(u=>`<tr><td><b>${esc(u.name)}</b></td><td class="num">${u.visits}</td><td>${esc(fmtWhen(u.last))}</td><td>${esc(place(u))}<div class="sub">${esc(srcLab(u))}</div></td></tr>`),"No logged-in visits in this period.")}</div>`+
+   `<div class="stack"><h3>Latest visits</h3>${tbl(["When","Who","From","Page","Device"],(a.recent||[]).map(r=>`<tr><td>${esc(fmtWhen(r.at))}</td><td>${r.name?esc(r.name):`<span class="sub">Guest</span>`}</td><td>${esc(place(r))}<div class="sub">${esc(srcLab(r))}</div></td><td>${esc(PAGE_NAMES[r.page]||r.page)}</td><td>${esc(r.device)}</td></tr>`),"No visits yet.")}</div>`;}
+document.addEventListener("click",e=>{if(e.target.id==="locBtn"){gpsGeo(true);return}const b=e.target.closest("[data-anadays]");if(b){anaDays=Number(b.dataset.anadays);loadAnalytics()}});
 
 /* ===================== home dashboard ===================== */
 async function loadHome(){const out=$("homeOut");
@@ -1250,7 +1347,7 @@ $("illLib").addEventListener("change",loadLoans);
 $("d_lib").addEventListener("change",loadProfile);
 $("myLib").addEventListener("change",()=>{const v=$("myLib").value;if(v)store("link-school",v);$("illLib").value=v;if(!editing)$("h_school").value=v;route()});
 $("d_print").onclick=()=>{if(!lastProfile){toast("Wait for the chart to load.");return}printPage("Collection Profile",reportHeadHTML("Collection Profile by Subject",lastProfile.name)+profileHTML(lastProfile.P)+SIGN)};
-$("r_print").onclick=printReport;$("r_dl").onclick=downloadCSV;$("r_marc").onclick=downloadMarc;
+$("r_print").onclick=printReport;$("r_word").onclick=downloadLpWord;$("r_dl").onclick=downloadCSV;$("r_marc").onclick=downloadMarc;
 $("r_lbl").onclick=async()=>{const r=await fullRecords();if(r)printLabels(r.rows,r.name)};
 
 /* ===================== Supabase connection ===================== */
