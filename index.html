@@ -394,6 +394,7 @@ header.top .who{max-width:min(100%,560px)}header.top .role{justify-content:flex-
       <button type="button" class="ghost" id="r_dl">Download Excel (CSV)</button>
       <button type="button" class="ghost" id="r_lbl">Print barcode labels</button>
       <button type="button" class="ghost" id="r_marc">Download MARC records for Koha (MARCXML)</button>
+      <button type="button" id="r_backup" hidden>Download full backup (Excel)</button>
     </div>
     <div class="panel" id="reportOut"></div>
   </section>
@@ -514,7 +515,7 @@ function applyRole(){libOptions();
   if(!ME)rl.innerHTML=`Browsing as a visitor · <a href="#account">Log in</a>`;
   else rl.innerHTML=`<span>Logged in as <b>${esc(ME.name)}</b> · ${isAdmin()?"Division librarian":isDiv()?esc(ME.userType.replace(" (Division Office)",""))+" · Division Office":isApproved()?esc(libName(ME.schoolId)):ME.status==="rejected"?"not approved":"waiting for approval"}</span><span id="locLine"></span><button type="button" class="ghost sm" id="logoutBtn">Log out</button>`;
   if(ME){showLoc();gpsGeo()}
-  $("acctLabel").textContent=!ME?"Sign up / Log in":isAdmin()?"Librarian accounts":"My profile";$("homeTab").hidden=!ME;$("anaTab").hidden=!canSeeAll();
+  $("acctLabel").textContent=!ME?"Sign up / Log in":isAdmin()?"Librarian accounts":"My profile";$("homeTab").hidden=!ME;$("r_backup").hidden=!isAdmin();$("anaTab").hidden=!canSeeAll();
   const b=$("acctBanner");b.hidden=true;
   if(ME&&ME.mustChange){b.hidden=false;b.innerHTML=`The division librarian reset your password. Please <a href="#account">set a new password</a> now.`}
   else if(ME&&!isAdmin()&&ME.status==="pending"){b.hidden=false;b.innerHTML="Your registration is <b>waiting for approval</b> by the division librarian. You can add resources once you're approved."}
@@ -897,6 +898,27 @@ async function downloadMarc(){const r=await fullRecords();if(!r)return;if(!r.row
   const recs=r.rows.map(h=>`  <record>\n    <leader>${LEADER}</leader>\n`+marcFields(h).map(f=>f.value!==undefined?`    <controlfield tag="${f.tag}">${x(f.value)}</controlfield>`:
     `    <datafield tag="${f.tag}" ind1="${f.i1}" ind2="${f.i2}">\n`+f.subs.map(s=>`      <subfield code="${s[0]}">${x(s[1])}</subfield>`).join("\n")+`\n    </datafield>`).join("\n")+`\n  </record>`).join("\n");
   downloadText(`Project-LINK-MARC-${r.name.replace(/[^\w]+/g,"-")}.xml`,`<?xml version="1.0" encoding="UTF-8"?>\n<collection xmlns="http://www.loc.gov/MARC21/slim">\n${recs}\n</collection>\n`,"application/xml")}
+
+/* ===================== full backup (admin) ===================== */
+function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement("script");s.src=src;s.onload=res;s.onerror=()=>rej(new Error("Could not load "+src));document.head.appendChild(s)})}
+async function tableAll(name){const out=[];for(let off=0;off<200000;off+=1000){const r=await sb.from(name).select("*").range(off,off+999);if(r.error){if(off===0)return{error:r.error.message,rows:[]};break}out.push(...(r.data||[]));if(!r.data||r.data.length<1000)break}return{rows:out}}
+async function downloadBackup(){if(!isAdmin()){toast("Only the division librarian can download the full backup.");return}
+  const btn=$("r_backup");btn.disabled=true;const old=btn.textContent;btn.textContent="Preparing backup…";
+  try{const tables=[["Libraries","schools"],["Holdings","holdings"],["Accounts","profiles"],["Interlibrary loans","ill"],["Record views","holding_views"]];
+    const data={};for(const [sheet,t] of tables){btn.textContent=`Preparing backup… (${sheet})`;data[sheet]=await tableAll(t)}
+    const stamp=new Date().toLocaleString("sv-SE",{timeZone:"Asia/Manila"}).slice(0,16).replace(" ","_").replace(":","");
+    const flat=v=>v==null?"":typeof v==="object"?JSON.stringify(v):v;
+    const info=[["Project LINK full backup"],["Schools Division of Agusan del Norte"],["Made on",new Date().toLocaleString("en-PH",{timeZone:"Asia/Manila"})],["Made by",ME.name||ME.email||""],[],["Sheet","Rows"]].concat(tables.map(([s])=>[s,data[s].error?"not available: "+data[s].error:data[s].rows.length]));
+    try{if(!window.XLSX)await loadScript("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js");
+      const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(info),"About this backup");
+      for(const [s] of tables){const rows=data[s].rows.map(r=>Object.fromEntries(Object.entries(r).map(([k,v])=>[k,flat(v)])));XLSX.utils.book_append_sheet(wb,rows.length?XLSX.utils.json_to_sheet(rows):XLSX.utils.aoa_to_sheet([["No rows"]]),s.slice(0,31))}
+      XLSX.writeFile(wb,`Project-LINK-backup-${stamp}.xlsx`)}
+    catch(e){/* no Excel library: one CSV per table */
+      const c=v=>`"${String(flat(v)).replace(/"/g,'""')}"`;
+      for(const [s] of tables){const rows=data[s].rows;if(!rows.length)continue;const cols=Object.keys(rows[0]);
+        downloadText(`Project-LINK-backup-${stamp}-${s.replace(/\W+/g,"-")}.csv`,"﻿"+[cols.map(c).join(",")].concat(rows.map(r=>cols.map(k=>c(r[k])).join(","))).join("\r\n"),"text/csv;charset=utf-8")}}
+    toast("Backup downloaded. Keep it in a safe folder (and a copy in Google Drive).")}
+  catch(e){toast(e.message)}finally{btn.disabled=false;btn.textContent=old}}
 
 /* ===================== library profile ===================== */
 const LP_CSS=`.lp{font-family:"Bookman Old Style",Georgia,serif;font-size:11.5px;color:#000}.lp .lph{text-align:center;line-height:1.35;border-bottom:2px solid #000;padding-bottom:6px;margin-bottom:10px}
@@ -1358,7 +1380,7 @@ $("illLib").addEventListener("change",loadLoans);
 $("d_lib").addEventListener("change",loadProfile);
 $("myLib").addEventListener("change",()=>{const v=$("myLib").value;if(v)store("link-school",v);$("illLib").value=v;if(!editing)$("h_school").value=v;route()});
 $("d_print").onclick=()=>{if(!lastProfile){toast("Wait for the chart to load.");return}printPage("Collection Profile",reportHeadHTML("Collection Profile by Subject",lastProfile.name)+profileHTML(lastProfile.P)+SIGN)};
-$("r_print").onclick=printReport;$("r_word").onclick=downloadLpWord;$("r_dl").onclick=downloadCSV;$("r_marc").onclick=downloadMarc;
+$("r_print").onclick=printReport;$("r_backup").onclick=downloadBackup;$("r_word").onclick=downloadLpWord;$("r_dl").onclick=downloadCSV;$("r_marc").onclick=downloadMarc;
 $("r_lbl").onclick=async()=>{const r=await fullRecords();if(r)printLabels(r.rows,r.name)};
 
 /* ===================== Supabase connection ===================== */
