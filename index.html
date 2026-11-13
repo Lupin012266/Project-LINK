@@ -433,7 +433,7 @@ const SUBJ_CALL={"000 General Works":["","000"],"100 Philosophy & Psychology":["
 const GRADES=["","Kindergarten","Grade 1","Grade 2","Grade 3","Grade 4","Grade 5","Grade 6","Grade 7","Grade 8","Grade 9","Grade 10","Grade 11","Grade 12","Multi-grade / General"];
 const TYPES=["Book","Textbook","Learner's Material","Reference","Periodical","E-resource","Audio-visual","Other"];
 const ITYPE={"Book":"BK","Textbook":"TB","Learner's Material":"LM","Reference":"REF","Periodical":"SER","E-resource":"ER","Audio-visual":"AV","Other":"OTH"};
-const FUNDS=["","MOOE","DepEd Central / Regional Allocation","LGU / SEF","Donation","Brigada Eskwela","PTA","Other"];
+const FUNDS=["","MOOE","DepEd Central / Regional Allocation","Division","LGU / SEF","Donation","Brigada Eskwela","PTA","Other"];
 const LANGS={"English":"eng","Filipino":"fil","Cebuano / Bisaya":"ceb","Other":"und"};
 const CATS=["Library Hub","School Library – Elementary","School Library – Secondary","School Library – Integrated / IS","School Library – Senior High","Division / LRMC Library"];
 const DIVISION="SCHOOLS DIVISION OF AGUSAN DEL NORTE", REGION="Republic of the Philippines · Department of Education · Caraga Region";
@@ -1483,8 +1483,12 @@ async function api(action,data){data=data||{};
     chk(await sb.from("schools").upsert({id,name,district,category:CATS.includes(data.category)?data.category:CATS[2],librarian:S(data.librarian,160),enrollment:Math.max(0,parseInt(data.enrollment)||0)}));return{schools:await allSchools()}}
   case "my_school_save":{needLogin();if(!isApproved())throw new Error("Your account must be approved first.");const id=ME.schoolId,name=S(data.name,200),district=S(data.district,120);
     if(!id)throw new Error("Your account has no library yet. Ask the division librarian.");if(!name||!district)throw new Error("Library name and district are required.");
-    const r=await sb.from("schools").update({name,district,category:CATS.includes(data.category)?data.category:CATS[2],librarian:S(data.librarian,160),enrollment:Math.max(0,parseInt(data.enrollment)||0)}).eq("id",id).select("id");
-    chk(r);if(!r.data||!r.data.length)throw new Error("Could not save. The division librarian needs to run the small database update first.");return{schools:await allSchools()}}
+    const cat=CATS.includes(data.category)?data.category:CATS[2],lib=S(data.librarian,160),enr=Math.max(0,parseInt(data.enrollment)||0);
+    const rp=await sb.rpc("my_school_update",{p_name:name,p_district:district,p_category:cat,p_librarian:lib,p_enrollment:enr});
+    if(rp.error&&!/my_school_update|schema cache|function/i.test(rp.error.message||""))throw new Error(rp.error.message);
+    if(rp.error){const r=await sb.from("schools").update({name,district,category:cat,librarian:lib,enrollment:enr}).eq("id",id).select("id");
+      chk(r);if(!r.data||!r.data.length)throw new Error("Could not save. Your account may not be linked to this library. Please tell the division librarian.")}
+    return{schools:await allSchools()}}
   case "school_delete":{needAdmin();const n=chk(await sb.rpc("catalog_totals",{p_school:data.id}));if(n&&n.total>0)throw new Error("This library still has books in the catalog. Remove or move them first.");
     chk(await sb.from("schools").delete().eq("id",data.id));return{schools:await allSchools()}}
   case "search":{const per=50,page=Math.max(0,parseInt(data.page)||0);const q=S(data.q,120).replace(/[%_\\]/g," ");
