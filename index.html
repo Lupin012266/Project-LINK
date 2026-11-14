@@ -199,6 +199,9 @@ label.check{flex-direction:row;gap:8px;align-items:center;font-weight:500;margin
 .rulesbox>summary,details>summary{cursor:pointer;font-weight:700;color:var(--accent)}.rulesbox{margin-top:6px}
 .charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:18px;margin:14px 0}.chart h4{margin:0 0 8px}.chart .prow{grid-template-columns:minmax(120px,40%) 1fr 90px}.prow small{color:var(--mute,#667)}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:10px 0}
+.classcheck{margin-top:14px;padding:14px 16px;border:1px solid #e0b84a;border-left:5px solid #c9a227;border-radius:10px;background:#fffaf0}
+.classcheck h3{margin:0 0 6px;font-size:1rem}.classcheck ul{margin:0 0 8px 18px;padding:0}.classcheck li{margin:4px 0}.classcheck li.bad{color:#a4161a}
+.classcheck[hidden]{display:none}
 .ddcchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;align-items:center;font-size:.85rem}
 .ddcchips[hidden]{display:none}
 .chartgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
@@ -333,6 +336,7 @@ header.top .who{max-width:min(100%,560px)}header.top .role{justify-content:flex-
         <span id="delBox"></span>
         <span class="note" id="formMsg"></span>
       </div>
+      <div class="classcheck" id="classCheck" hidden></div>
     </form>
     <div class="panel stack" id="savedBox" hidden></div>
     <div class="panel stack">
@@ -454,9 +458,9 @@ header.top .who{max-width:min(100%,560px)}header.top .role{justify-content:flex-
 
 <script>
 /* ===================== constants ===================== */
-const SUBJECTS=["000 General Works","100 Philosophy & Psychology","200 Religion & Values Education","300 Social Sciences / Araling Panlipunan","400 Language / English","500 Science & Mathematics","600 Technology / TLE & Health","700 Arts, MAPEH & Recreation","800 Literature","899 Filipino Literature","900 History & Geography","Biography","Reference (Dictionary, Encyclopedia)","Filipiniana","Textbooks / Learner's Materials","Teacher's Guides","Periodicals"];
+const SUBJECTS=["000 General Works","100 Philosophy & Psychology","200 Religion & Values Education","300 Social Sciences / Araling Panlipunan","400 Language / English","500 Science & Mathematics","600 Technology / TLE & Health","700 Arts, MAPEH & Recreation","800 Literature","899 Filipino Literature","900 History & Geography","Reference (Dictionary, Encyclopedia)","Filipiniana","Textbooks / Learner's Materials","Teacher's Guides","Periodicals"];
 const LEGACY_LIT=s=>/^(fiction|easy( books?)?|picture books?)\b/i.test(String(s||"").trim());
-const legacySubj=(s,lang)=>LEGACY_LIT(s)?(/^(filipino|tagalog)/i.test(String(lang||""))?"899 Filipino Literature":"800 Literature"):s;
+const legacySubj=(s,lang)=>/^biograph/i.test(String(s||"").trim())?"900 History & Geography":LEGACY_LIT(s)?(/^(filipino|tagalog)/i.test(String(lang||""))?"899 Filipino Literature":"800 Literature"):s;
 const SUBJ_CALL={"000 General Works":["","000"],"100 Philosophy & Psychology":["","100"],"200 Religion & Values Education":["","200"],"300 Social Sciences / Araling Panlipunan":["","300"],"400 Language / English":["","420"],"500 Science & Mathematics":["","500"],"600 Technology / TLE & Health":["","600"],"700 Arts, MAPEH & Recreation":["","700"],"800 Literature":["","800"],"899 Filipino Literature":["","899.21"],"900 History & Geography":["","900"],"Fiction":["F",""],"Easy Books (picture books, K–3)":["E",""],"Biography":["B","920"],"Reference (Dictionary, Encyclopedia)":["R","030"],"Filipiniana":["Fil","959.9"],"Textbooks / Learner's Materials":["TX",""],"Teacher's Guides":["TG","371.3"],"Periodicals":["Per","050"]};
 const GRADES=["","Kindergarten","Grade 1","Grade 2","Grade 3","Grade 4","Grade 5","Grade 6","Grade 7","Grade 8","Grade 9","Grade 10","Grade 11","Grade 12","Multi-grade / General"];
 const TYPES=["Book","Textbook","Learner's Material","Reference","Periodical","E-resource","Audio-visual","Other"];
@@ -633,6 +637,27 @@ function suggestDDC(d){const t=fold(String(d.title||"")).toLowerCase();
   if(d.subject==="Biography")return {ddc:"920",why:"Biography"};
   for(const [re,n] of DDC_KEYS){const m=re.exec(t);if(m)return {ddc:n,why:`title word “${m[0].trim()}”`}}
   const base=(SUBJ_CALL[d.subject]||["",""])[1];return base&&base!=="000"?{ddc:base,why:"the subject"}:{ddc:"",why:""}}
+function checkClass(d){const hard=[],soft=[];const fix={ddc:String(d.ddc||"").trim(),subject:d.subject,callNo:d.callNo};
+  const pre=(SUBJ_CALL[d.subject]||[""])[0],isD=/^\d{3} /.test(d.subject);const ts=suggestDDC({title:d.title,subject:""});
+  if(fix.ddc&&!/^\d{3}(\.\d+)?$/.test(fix.ddc)){const m=/\d{3}(\.\d+)?/.exec(fix.ddc);hard.push(`The DDC number “${esc(fix.ddc)}” is not written correctly. It should be 3 digits, with an optional decimal (example: 599.75).`);fix.ddc=m?m[0]:(ts.ddc||"")}
+  if(!fix.ddc){if(!NO_CLASS.includes(pre))soft.push(ts.ddc?`There is no DDC number. Suggested: <b>${ts.ddc}</b> (from ${esc(ts.why)}).`:"There is no DDC number. Type one, or choose from the buttons under DDC class no.");if(ts.ddc)fix.ddc=ts.ddc}
+  else if(/^000/.test(fix.ddc)){soft.push(`<b>000</b> is only for general works (almanacs, records, books about knowledge itself). Encyclopedias are 030–039, computers 004–006.${ts.ddc&&!/^0/.test(ts.ddc)?` Suggested: <b>${ts.ddc}</b> (from ${esc(ts.why)}).`:""}`);if(ts.ddc&&!/^0/.test(ts.ddc))fix.ddc=ts.ddc}
+  else if(ts.ddc&&ts.ddc[0]!==fix.ddc[0]){soft.push(`The DDC <b>${esc(fix.ddc)}</b> is in ${esc(ddcToSubj(fix.ddc)||"another class")}, but the ${esc(ts.why)} suggests <b>${ts.ddc}</b> (${esc(ddcToSubj(ts.ddc))}).`);fix.ddc=ts.ddc}
+  const D0=/^\d{3}(\.\d+)?$/.test(String(d.ddc||"").trim())?String(d.ddc).trim():"";
+  if(isD&&D0){const want=ddcToSubj(D0);if(want&&want!==d.subject)hard.push(`DDC <b>${esc(D0)}</b> belongs to <b>${esc(want)}</b>, but the subject chosen is <b>${esc(d.subject)}</b>.`)}
+  if(isD&&fix.ddc){const want=ddcToSubj(fix.ddc);if(want)fix.subject=want}
+  const pre2=(SUBJ_CALL[fix.subject]||[""])[0],expect=suggestCall({...d,ddc:fix.ddc,subject:fix.subject});
+  if(D0&&!NO_CLASS.includes(pre)&&d.callNo){const m=/(?:^|[^\d.])(\d{3})(?:\.\d+)?(?!\d)/.exec(d.callNo);
+    if(!m||m[1]!==D0.slice(0,3))hard.push(`The call number <b>${esc(d.callNo)}</b> does not match the DDC <b>${esc(D0)}</b>. It should start with the DDC number.`)}
+  if(fix.ddc&&!NO_CLASS.includes(pre2)&&(fix.ddc!==D0||fix.subject!==d.subject||hard.length||!d.callNo))fix.callNo=expect;
+  return{hard,soft,fix,changed:fix.ddc!==String(d.ddc||"").trim()||fix.subject!==d.subject||fix.callNo!==d.callNo}}
+function showClassCheck(ck){const b=$("classCheck");b.hidden=false;const f=ck.fix;
+  b.innerHTML=`<h3>Check the classification</h3><ul>${ck.hard.map(x=>`<li class="bad">${x}</li>`).join("")}${ck.soft.map(x=>`<li>${x}</li>`).join("")}</ul>
+   ${ck.changed?`<p>Suggested: subject <b>${esc(f.subject)}</b> · DDC <b>${esc(f.ddc||"—")}</b> · call no. <span class="call">${esc(f.callNo||"—")}</span></p><button type="button" id="ccFix">Use the suggestion</button>`:""}
+   <p class="note">${ck.hard.length?"The red items must be fixed before saving. You can fix them yourself or use the suggestion.":"If you are sure yours is right, press <b>Save</b> again."}</p>`;
+  if(ck.changed)$("ccFix").onclick=()=>{$("h_ddc").value=f.ddc;$("h_subject").value=f.subject;$("h_call").value=f.callNo;ddcManual=subjManual=callManual=true;ddcWarned=false;
+    b.hidden=true;$("formMsg").textContent="Suggestion applied. Check it, then press Save.";$("saveBtn").focus()};
+  b.scrollIntoView({block:"nearest",behavior:"smooth"})}
 function ddcToSubj(ddc){const m=/^(\d{3})/.exec(String(ddc||""));if(!m)return "";const n=parseInt(m[1],10);if(n>=899&&n<900)return "899 Filipino Literature";
   const c=String(Math.floor(n/100)*100).padStart(3,"0");return SUBJECTS.find(s=>s.startsWith(c+" "))||""}
 const NO_CLASS=["F","E","B","Fic","TX"];
@@ -856,7 +881,7 @@ async function loadProfile(){const id=$("d_lib").value;try{const r=await api("pr
 /* ---- division analytics: DDC classes, publishers, authors ---- */
 const DDC_NAMES={0:"000 General Works",100:"100 Philosophy & Psychology",200:"200 Religion",300:"300 Social Sciences",400:"400 Language",500:"500 Science & Mathematics",600:"600 Technology",700:"700 Arts & Recreation",800:"800 Literature",900:"900 History & Geography"};
 const CH_COLORS=["#1f3f8f","#b98a1e","#227a4c","#b3362d","#6d4bb3","#0f7d8c","#c2621a","#7a6a12","#3f6fd1","#a3346f"];
-function ddcClass(h){if(LEGACY_LIT(h.subject))return 800;for(const s of [h.ddc,h.callNo]){const m=/(?:^|[^\d.])(\d{3})(?:\.\d+)?(?!\d)/.exec(String(s||""));if(m)return Math.floor(parseInt(m[1],10)/100)*100}
+function ddcClass(h){if(LEGACY_LIT(h.subject))return 800;if(/^biograph/i.test(h.subject||""))return 900;for(const s of [h.ddc,h.callNo]){const m=/(?:^|[^\d.])(\d{3})(?:\.\d+)?(?!\d)/.exec(String(s||""));if(m)return Math.floor(parseInt(m[1],10)/100)*100}
   const m=/^(\d{3})/.exec(h.subject||"");return m?Math.floor(parseInt(m[1],10)/100)*100:null}
 function lev(a,b){if(a===b)return 0;const m=a.length,n=b.length;if(Math.abs(m-n)>2)return 3;let p=Array.from({length:n+1},(_,j)=>j);
   for(let i=1;i<=m;i++){const c=[i];for(let j=1;j<=n;j++)c[j]=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1));p=c}return p[n]}
@@ -1313,7 +1338,7 @@ function renderAdd(){const ok=canAdd();$("addGate").hidden=ok;$("addArea").hidde
   if(!ok)$("addGate").innerHTML=!ME?`<strong>Log in to add resources</strong><a href="#account">Log in or sign up</a>. The division librarian approves new librarians.`:ME.status==="pending"?"<strong>Waiting for approval</strong>The division librarian will approve your account soon. You can add resources once you're approved.":"<strong>Your account is not approved</strong>Contact the division librarian.";
   else if(!editing&&!$("h_school").value&&myLib())$("h_school").value=myLib();}
 function setCoverPreview(src){$("coverPrev").innerHTML=src?`<img src="${esc(src)}" alt="Cover preview">`:"No cover";$("coverClear").hidden=!src}
-function resetForm(){editing=null;coverData=null;coverChanged=false;callManual=false;ddcManual=false;subjManual=false;ddcWarned=false;showChips(false);
+function resetForm(){$("classCheck").hidden=true;editing=null;coverData=null;coverChanged=false;callManual=false;ddcManual=false;subjManual=false;ddcWarned=false;showChips(false);
   $("formTitle").textContent="Add a resource to your library's holdings";$("cancelEdit").hidden=true;$("saveBtn").textContent="Save resource";$("delBox").innerHTML="";
   const keep=$("h_school").value;$("addForm").reset();$("h_school").value=lockedLib()||keep;$("h_copies").value=1;setCoverPreview(null);
   $("callHint").textContent="A call number is suggested from the subject, author and year. You can change it.";}
@@ -1332,10 +1357,9 @@ $("addForm").addEventListener("submit",async e=>{e.preventDefault();if(!canAdd()
   const d={};Object.entries(F).forEach(([k,f])=>d[f]=$("h_"+k).value.trim());
   if(lockedLib())d.schoolId=lockedLib();
   if(!d.schoolId||!d.accessionNo||!d.title||!d.subject){$("formMsg").textContent="Fill in library, accession no., title and subject.";return}
-  const pre0=(SUBJ_CALL[d.subject]||[""])[0];
-  if(!ddcWarned&&!NO_CLASS.includes(pre0)&&(!/^\d{3}/.test(d.ddc)||/^000/.test(d.ddc))){ddcWarned=true;
-    $("formMsg").innerHTML=`<b>Check the DDC number.</b> ${d.ddc?"000 is only for general works like almanacs, records, and books about libraries or computers (004–006). Encyclopedias are 030–039.":"There is no DDC number yet."} Correct it in <b>Classification and call number</b>, or press <b>Save</b> again to save as is.`;$("h_ddc").focus();return}
-  ddcWarned=false;
+  {const ck=checkClass(d),sig=[d.title,d.subject,d.ddc,d.callNo].join("|");
+   if(ck.hard.length||(ck.soft.length&&ddcWarned!==sig)){showClassCheck(ck);ddcWarned=ck.hard.length?false:sig;$("formMsg").textContent=ck.hard.length?"Please fix the classification first (see below).":"Please check the classification (see below).";return}}
+  ddcWarned=false;$("classCheck").hidden=true;
   if(!d.callNo)d.callNo=suggestCall(d);
   if(editing)d._id=editing._id;
   const payload={rec:d};if(coverChanged)payload.cover=coverData||null;
