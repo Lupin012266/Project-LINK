@@ -287,7 +287,7 @@ header.top .who{max-width:min(100%,560px)}header.top .role{justify-content:flex-
           <label class="span2">Author(s)<input id="h_author" placeholder="Surname, First name; separate co-authors with ;"></label>
           <label>Edition<input id="h_edition" placeholder="2nd ed."></label>
           <label>Place of publication<input id="h_place" placeholder="Quezon City"></label>
-          <label>Publisher<input id="h_publisher"></label>
+          <label>Publisher<input id="h_publisher" list="pubList" autocomplete="off" placeholder="Start typing, e.g. Rex"><datalist id="pubList"></datalist><span class="hint" id="pubHint"></span></label>
           <label>Copyright year<input id="h_year" inputmode="numeric" placeholder="2023"></label>
           <label>Pages<input id="h_pages" placeholder="245 p."></label>
           <label>ISBN<span class="callfield"><input id="h_isbn"><button type="button" class="ghost sm" id="isbnFind">Find details</button></span><span class="hint" id="isbnHint">Fills in title, author, publisher and DDC when the book is in Open Library.</span></label>
@@ -885,7 +885,7 @@ function ddcClass(h){if(LEGACY_LIT(h.subject))return 800;if(/^biograph/i.test(h.
 function lev(a,b){if(a===b)return 0;const m=a.length,n=b.length;if(Math.abs(m-n)>2)return 3;let p=Array.from({length:n+1},(_,j)=>j);
   for(let i=1;i<=m;i++){const c=[i];for(let j=1;j<=n;j++)c[j]=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1));p=c}return p[n]}
 function nameKey(s,kind){let k=String(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/&/g," and ").replace(/[^a-z0-9 ]+/g," ");
-  if(kind==="pub")k=k.replace(/\b(book ?stores?|books?|inc|incorporated|co|company|corp|corporation|ltd|limited|the|publishing|publishers?|publications?|press|house|enterprises?|phils?|philippines)\b/g," ");
+  if(kind==="pub")k=k.replace(/\b(book ?stores?|books?|inc|incorporated|co|company|corp|corporation|ltd|limited|the|publishing|publishers?|publications?|press|house|group|enterprises?|phils?|philippines)\b/g," ");
   else k=k.replace(/\bet al\b/g," ").split(/\s+/).filter(w=>w.length>1).sort().join(" ");
   return k.replace(/\s+/g," ").trim()}
 function tidyName(s){s=String(s||"").replace(/\s+/g," ").trim();return(s===s.toUpperCase()||s===s.toLowerCase())?s.toLowerCase().replace(/\b[a-z]/g,c=>c.toUpperCase()):s}
@@ -905,6 +905,22 @@ function divStats(rows){const ddc={},noDdc={titles:0,copies:0};let titles=0,copi
   const classes=Object.keys(DDC_NAMES).map(Number).map(k=>({k,label:DDC_NAMES[k],titles:(ddc[k]||{}).titles||0,copies:(ddc[k]||{}).copies||0}));
   return{titles,copies,classes,noDdc,pubs:groupNames(pubs,"pub"),auths:groupNames(auths,"auth"),noPub,noAuth}}
 let DIV_CACHE=null;const CHARTS={};
+const PH_PUBS=["Rex Book Store","Vibal Group","Phoenix Publishing House","C&E Publishing","Diwa Learning Systems","Sibs Publishing House","Abiva Publishing House","Adarna House","Anvil Publishing","Lampara Books","Tahanan Books","JMC Press","Book Media Press","Educational Resources Corporation","Lorimar Publishing","Mutya Publishing House","Brilliant Creations Publishing","Ateneo de Manila University Press","University of the Philippines Press","National Book Store","OMF Literature","Department of Education"];
+let PUB_NAMES=null,PUB_AT=0;
+async function loadPubList(){try{if(!PUB_NAMES||Date.now()-PUB_AT>600000){let S=DIV_CACHE&&DIV_CACHE.S;
+    if(!S){const rows=(await api("records_full",{})).rows;S=divStats(rows);DIV_CACHE={at:Date.now(),S}}
+    const seen=new Map();PH_PUBS.forEach(n=>seen.set(nameKey(n,"pub"),n));
+    (S.pubs||[]).forEach(x=>{const k=nameKey(x.name,"pub");if(k&&![...seen.keys()].some(q=>q===k||(lev(q,k)<=1&&Math.min(q.length,k.length)>=3&&q[0]===k[0])||(lev(q,k)===2&&Math.min(q.length,k.length)>=8)))seen.set(k,x.name)});
+    PUB_NAMES=[...seen.values()].filter(Boolean).sort((a,b)=>a.localeCompare(b));PUB_AT=Date.now()}
+  $("pubList").innerHTML=PUB_NAMES.map(n=>`<option value="${esc(n)}"></option>`).join("")}catch(e){}}
+function pubMatch(v){const k=nameKey(v,"pub");if(!k||!PUB_NAMES)return null;let best=null,bd=9;
+  PUB_NAMES.forEach(n=>{const q=nameKey(n,"pub");if(!q)return;const d=q===k?0:lev(q,k),m=Math.min(q.length,k.length);
+    const ok=d===0||(d===1&&m>=3&&q[0]===k[0])||(d===2&&m>=6)||(k.length>=3&&q.startsWith(k));if(ok&&d<bd){bd=d;best=n}});
+  return best&&best!==String(v).trim()?best:null}
+function checkPub(){const v=$("h_publisher").value.trim(),h=$("pubHint");const m=v?pubMatch(v):null;
+  if((h.dataset.m||"")===(m||""))return;h.dataset.m=m||"";
+  h.innerHTML=m?`Did you mean <b>${esc(m)}</b>? <button type="button" class="ghost sm" id="pubUse">Use this</button>`:"";
+  if(m)$("pubUse").onclick=()=>{$("h_publisher").value=m;h.innerHTML="";h.dataset.m="";$("h_publisher").dispatchEvent(new Event("input"))}}
 async function ensureChartJs(){if(window.Chart)return true;try{await loadScript("https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js");return !!window.Chart}catch(e){return false}}
 const endLabels={id:"endLabels",afterDatasetsDraw(c){const ds=c.data.datasets[0];if(!ds||!ds.endText)return;const ctx=c.ctx,meta=c.getDatasetMeta(0);ctx.save();ctx.font="600 12px Inter, system-ui, sans-serif";ctx.fillStyle=ds.endColor||"#18213a";ctx.textBaseline="middle";
   meta.data.forEach((bar,i)=>{const t=ds.endText[i];if(t)ctx.fillText(t,bar.x+6,bar.y)});ctx.restore()}};
@@ -1333,11 +1349,11 @@ async function loadHome(){const out=$("homeOut");
 
 /* ===================== add / edit ===================== */
 const F={school:"schoolId",acc:"accessionNo",call:"callNo",title:"title",author:"author",edition:"edition",place:"place",publisher:"publisher",year:"year",pages:"pages",isbn:"isbn",lang:"language",subject:"subject",grade:"grade",type:"type",copies:"copies",cond:"condition",fund:"fund",date:"dateReceived",dr:"drNo",remarks:"remarks",bin:"bin",ddc:"ddc"};
-function renderAdd(){const ok=canAdd();$("addGate").hidden=ok;$("addArea").hidden=!ok;
+function renderAdd(){const ok=canAdd();$("addGate").hidden=ok;$("addArea").hidden=!ok;if(ok)loadPubList();
   if(!ok)$("addGate").innerHTML=!ME?`<strong>Log in to add resources</strong><a href="#account">Log in or sign up</a>. The division librarian approves new librarians.`:ME.status==="pending"?"<strong>Waiting for approval</strong>The division librarian will approve your account soon. You can add resources once you're approved.":"<strong>Your account is not approved</strong>Contact the division librarian.";
   else if(!editing&&!$("h_school").value&&myLib())$("h_school").value=myLib();}
 function setCoverPreview(src){$("coverPrev").innerHTML=src?`<img src="${esc(src)}" alt="Cover preview">`:"No cover";$("coverClear").hidden=!src}
-function resetForm(){$("classCheck").hidden=true;editing=null;coverData=null;coverChanged=false;callManual=false;ddcManual=false;subjManual=false;ddcWarned=false;showChips(false);
+function resetForm(){$("classCheck").hidden=true;$("pubHint").innerHTML="";$("pubHint").dataset.m="";editing=null;coverData=null;coverChanged=false;callManual=false;ddcManual=false;subjManual=false;ddcWarned=false;showChips(false);
   $("formTitle").textContent="Add a resource to your library's holdings";$("cancelEdit").hidden=true;$("saveBtn").textContent="Save resource";$("delBox").innerHTML="";
   const keep=$("h_school").value;$("addForm").reset();$("h_school").value=lockedLib()||keep;$("h_copies").value=1;setCoverPreview(null);
   $("callHint").textContent="A call number is suggested from the subject, author and year. You can change it.";}
@@ -1371,6 +1387,7 @@ $("addForm").addEventListener("submit",async e=>{e.preventDefault();if(!canAdd()
 $("cancelEdit").onclick=()=>{resetForm();$("formMsg").textContent=""};
 ["h_type","h_year","h_author","h_title"].forEach(id=>$(id).addEventListener("input",autoCall));
 $("h_call").addEventListener("input",()=>{callManual=$("h_call").value.trim()!==""});
+$("h_publisher").addEventListener("change",checkPub);$("h_publisher").addEventListener("blur",checkPub);
 $("callSuggest").onclick=()=>{ddcManual=false;callManual=false;autoDDC();$("h_call").value=suggestCall(formSnapshot());$("callHint").textContent="Collection prefix + DDC class + LC Cutter number + year. Check it before saving."};
 $("ddcSuggest").onclick=()=>{ddcManual=false;callManual=false;autoCall()};
 $("h_subject").addEventListener("change",()=>{subjManual=$("h_subject").value!=="";ddcManual=false;autoCall()});
