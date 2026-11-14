@@ -199,6 +199,8 @@ label.check{flex-direction:row;gap:8px;align-items:center;font-weight:500;margin
 .rulesbox>summary,details>summary{cursor:pointer;font-weight:700;color:var(--accent)}.rulesbox{margin-top:6px}
 .charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:18px;margin:14px 0}.chart h4{margin:0 0 8px}.chart .prow{grid-template-columns:minmax(120px,40%) 1fr 90px}.prow small{color:var(--mute,#667)}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:10px 0}
+.ddcchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;align-items:center;font-size:.85rem}
+.ddcchips[hidden]{display:none}
 .chartgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
 .chartcard{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:6px;min-width:0}
 .chartcard.wide{grid-column:1/-1}.chartcard h3{font-size:17px}.chartcard .note{margin:0}
@@ -270,18 +272,10 @@ header.top .who{max-width:min(100%,560px)}header.top .role{justify-content:flex-
         <h2 id="formTitle">Add a resource to your library's holdings</h2>
         <button type="button" class="ghost" id="cancelEdit" hidden>Cancel edit</button>
       </div>
-      <fieldset><legend>Library and call number</legend>
+      <fieldset><legend>Library</legend>
         <div class="formgrid">
           <label class="span2">Library *<select id="h_school" required></select></label>
           <label>Accession no. *<input id="h_acc" required placeholder="2026-0001"></label>
-          <label>DDC class no.
-            <span class="callfield"><input id="h_ddc" inputmode="decimal" placeholder="e.g. 599.75"><button type="button" class="ghost sm" id="ddcSuggest">Suggest</button></span>
-            <span class="hint" id="ddcHint">Suggested from the title and subject. Check it against the DDC.</span>
-          </label>
-          <label class="span2">Call number
-            <span class="callfield"><input id="h_call" placeholder="Fills in automatically"><button type="button" class="ghost sm" id="callSuggest">Suggest</button></span>
-            <span class="hint" id="callHint">Made from the collection prefix, DDC class, LC Cutter number of the author (or title) and year. You can change it.</span>
-          </label>
         </div>
       </fieldset>
       <fieldset><legend>Bibliographic details</legend>
@@ -298,6 +292,19 @@ header.top .who{max-width:min(100%,560px)}header.top .role{justify-content:flex-
           <label>Subject / classification *<select id="h_subject" required></select></label>
           <label>Grade level<select id="h_grade"></select></label>
           <label>Type of resource<select id="h_type"></select></label>
+        </div>
+      </fieldset>
+      <fieldset><legend>Classification and call number</legend>
+        <p class="note" style="margin:0 0 10px">Fill in the title, author and subject first. The DDC number and call number are suggested from them.</p>
+        <div class="formgrid">
+          <label class="span2">DDC class no.
+            <span class="callfield"><input id="h_ddc" inputmode="decimal" placeholder="e.g. 599.75"><button type="button" class="ghost sm" id="ddcSuggest">Suggest</button></span>
+            <span class="hint" id="ddcHint">Suggested from the title and subject. Check it against the DDC.</span><span class="ddcchips" id="ddcChips" hidden></span>
+          </label>
+          <label class="span2">Call number
+            <span class="callfield"><input id="h_call" placeholder="Fills in automatically"><button type="button" class="ghost sm" id="callSuggest">Suggest</button></span>
+            <span class="hint" id="callHint">Made from the collection prefix, DDC class, LC Cutter number of the author (or title) and year. You can change it.</span>
+          </label>
         </div>
       </fieldset>
       <fieldset><legend>Book cover</legend>
@@ -505,7 +512,7 @@ const RULES=`<div class="rules"><h3>Borrowing rules and policy</h3><div class="r
 const isOverdue=r=>r.status==="Lent"&&r.dueDate&&r.dueDate<todayISO();
 
 /* ===================== static selects ===================== */
-$("h_subject").innerHTML=opts(SUBJECTS);$("h_grade").innerHTML=opts(GRADES);$("h_type").innerHTML=opts(TYPES);$("h_fund").innerHTML=opts(FUNDS);
+$("h_subject").innerHTML=opts(SUBJECTS,"— Choose subject —");$("h_grade").innerHTML=opts(GRADES);$("h_type").innerHTML=opts(TYPES);$("h_fund").innerHTML=opts(FUNDS);
 $("h_lang").innerHTML=opts(Object.keys(LANGS));$("s_cat").innerHTML=opts(CATS);
 $("fSubject").innerHTML=opts(SUBJECTS,"All subjects");$("fGrade").innerHTML=opts(GRADES.filter(Boolean),"All");
 $("fCat").innerHTML=opts(CATS,"All types");$("r_cat").innerHTML=opts(CATS,"All types");
@@ -598,7 +605,7 @@ function lcCutter(word){const w=fold(word).toLowerCase().replace(/[^a-z]/g,"");i
 /* DDC suggestions from words in the title (English and Filipino). The librarian checks them. */
 const DDC_KEYS=[
  [/(filipino|tagalog).*(dictionar|diksiyonaryo)|diksiyonaryo|talahuluganan|talatinigan/,"499.2113"],[/thesaur/,"423.12"],[/dictionar/,"423"],[/encyclop|ensiklopedya/,"031"],[/almanac/,"031.02"],[/\batlas\b|\bmaps?\b/,"912"],
- [/balarila|gramatika/,"499.2115"],[/grammar/,"425"],[/phonics|beginning reading|learn to read|pagbasa/,"372.4"],[/public speaking|\bspeech\b/,"808.51"],[/composition|creative writing|pagsulat/,"808"],
+ [/reading power|reading skill|developing reading|reading comprehension|reading for|reading and writing/,"428.4"],[/balarila|gramatika/,"499.2115"],[/grammar/,"425"],[/phonics|beginning reading|learn to read|pagbasa/,"372.4"],[/public speaking|\bspeech\b/,"808.51"],[/composition|creative writing|pagsulat/,"808"],
  [/\btula\b|tulaan/,"899.2111"],[/poem|poetry/,"808.81"],[/maikling kuwento/,"899.2113"],[/short stor/,"808.831"],
  [/bugtong|riddle/,"398.6"],[/salawikain|proverb/,"398.9"],[/folk ?tale|fable|legend|alamat|pabula|kuwentong bayan|myth|epic/,"398.2"],
  [/dinosaur/,"567.9"],[/butterfl|insect|kulisap/,"595.7"],[/\bbirds?\b|ibon/,"598"],[/reptile|snake|turtle/,"597.9"],[/\bfish|isda/,"597"],[/mammal/,"599"],[/marine life|sea animal|ocean animal|coral/,"591.77"],[/animal|hayop/,"590"],
@@ -606,7 +613,7 @@ const DDC_KEYS=[
  [/human body|katawan ng tao|anatomy/,"612"],[/first aid|pangunang lunas/,"616.0252"],[/nutrition|food group|nutrisyon/,"613.2"],[/drug|substance abuse/,"362.29"],[/disease|sakit/,"616"],[/health|kalusugan|hygiene/,"613"],
  [/solar system|planet/,"523.2"],[/astronom|outer space|\bstars?\b|\bspace\b|kalawakan/,"520"],[/typhoon|bagyo/,"551.552"],[/earthquake|lindol/,"551.22"],[/volcano|bulkan/,"551.21"],[/climate change/,"363.73874"],[/weather|panahon|climate/,"551.6"],
  [/disaster|drrm|calamit|sakuna/,"363.34"],[/rocks?\b|mineral/,"552"],[/earth science/,"550"],[/chemistry|kimika/,"540"],[/physics|pisika/,"530"],[/biology|biyolohiya/,"570"],
- [/recycl/,"363.728"],[/pollution|polusyon/,"363.73"],[/environment|kapaligiran|ecolog/,"363.7"],[/science|agham/,"500"],
+ [/save water|water conservation|\bwater\b|tubig/,"333.91"],[/recycl/,"363.728"],[/pollution|polusyon/,"363.73"],[/environment|kapaligiran|ecolog/,"363.7"],[/science|agham/,"500"],
  [/algebra/,"512"],[/geometry|heometriya/,"516"],[/trigonometr/,"516.24"],[/calculus/,"515"],[/statistic|probabilit/,"519.5"],[/arithmetic|fraction|multiplication|addition|subtraction/,"513"],[/math|matematika/,"510"],
  [/programming|coding/,"005.1"],[/internet/,"004.678"],[/computer|\bict\b|kompyuter/,"004"],
  [/electricity|electrical/,"621.3"],[/electronic/,"621.381"],[/carpentry|woodwork/,"694"],[/engineering/,"620"],
@@ -621,11 +628,13 @@ const DDC_KEYS=[
  [/gender/,"305.3"],[/population/,"304.6"],[/family|pamilya/,"306.85"],[/festival|fiesta|holiday/,"394.26"],[/culture|customs|kultura/,"390"],[/sociolog/,"301"],
  [/special education|sped/,"371.9"],[/guidance|counsel/,"371.4"],[/curriculum/,"375"],[/early childhood|kindergarten/,"372.21"],[/teaching|teacher|pagtuturo/,"371.102"],[/education|edukasyon/,"370"],
  [/rizal|philippine history|kasaysayan ng pilipinas|history of the filipino|filipino people|katipunan|philippine revolution/,"959.9"],[/philippine geography|travel.*philippines/,"915.99"],[/asian history|history of asia|\basia\b|asya/,"950"],[/world history|kasaysayang pandaigdig/,"909"],[/history|kasaysayan/,"900"],[/geography|heograpiya/,"910"],
- [/biograph|talambuhay/,"920"],[/panitikan|philippine literature/,"899.21"],[/english language/,"420"],[/\bwika\b|filipino language/,"499.211"],[/literature/,"800"],[/social studies|araling panlipunan/,"300"],[/mapeh/,"700"]];
+ [/biograph|talambuhay/,"920"],[/new york/,"917.47"],[/travel|paglalakbay|tourist/,"910.4"],[/panitikan|philippine literature/,"899.21"],[/english language/,"420"],[/\bwika\b|filipino language/,"499.211"],[/literature/,"800"],[/social studies|araling panlipunan/,"300"],[/mapeh/,"700"],[/kuwento|kwento|storybook/,"899.2113"],[/\bnovel\b|nobela/,"808.83"]];
 function suggestDDC(d){const t=fold(String(d.title||"")).toLowerCase();
   if(d.subject==="Biography")return {ddc:"920",why:"Biography"};
   for(const [re,n] of DDC_KEYS){const m=re.exec(t);if(m)return {ddc:n,why:`title word “${m[0].trim()}”`}}
-  const base=(SUBJ_CALL[d.subject]||["",""])[1];return base?{ddc:base,why:"the subject"}:{ddc:"",why:""}}
+  const base=(SUBJ_CALL[d.subject]||["",""])[1];return base&&base!=="000"?{ddc:base,why:"the subject"}:{ddc:"",why:""}}
+function ddcToSubj(ddc){const m=/^(\d{3})/.exec(String(ddc||""));if(!m)return "";const n=parseInt(m[1],10);if(n>=899&&n<900)return "899 Filipino Literature";
+  const c=String(Math.floor(n/100)*100).padStart(3,"0");return SUBJECTS.find(s=>s.startsWith(c+" "))||""}
 const NO_CLASS=["F","E","B","Fic","TX"];
 function suggestCall(d){const [pre]=SUBJ_CALL[d.subject]||["",""];const prefix=d.type==="Reference"&&!pre?"R":pre;
   const yr=/^\d{4}$/.test(String(d.year||"").trim())?String(d.year).trim():"";
@@ -634,9 +643,12 @@ function suggestCall(d){const [pre]=SUBJ_CALL[d.subject]||["",""];const prefix=d
   const mark=lcCutter(mainEntryWord(d.author,d.title));
   return [prefix,cls,mark,yr].filter(Boolean).join(" ");}
 const formSnapshot=()=>({subject:$("h_subject").value,type:$("h_type").value,year:$("h_year").value,author:$("h_author").value,title:$("h_title").value,ddc:$("h_ddc").value});
-let ddcManual=false;
-function autoDDC(){if(ddcManual)return;const s=suggestDDC(formSnapshot());$("h_ddc").value=s.ddc;$("ddcHint").textContent=s.ddc?`Suggested from ${s.why}. Check it against the DDC.`:"Type the DDC class number.";}
-function autoCall(){autoDDC();if(callManual)return;const s=suggestCall(formSnapshot());if(s)$("h_call").value=s;}
+let ddcManual=false,subjManual=false,ddcWarned=false;
+const STORY_CHIPS=[["899.2113","Storybook / kuwento (Filipino)"],["823","Storybook / novel (English)"],["031","Encyclopedia"],["423","English dictionary"]];
+function autoSubj(){if(subjManual)return;const s=suggestDDC({title:$("h_title").value,subject:""});const sub=s.ddc?ddcToSubj(s.ddc):"";if(sub)$("h_subject").value=sub}
+function showChips(on){const c=$("ddcChips");c.hidden=!on;if(on&&!c.innerHTML)c.innerHTML=" Not sure? Choose one: "+STORY_CHIPS.map(([n,l])=>`<button type="button" class="ghost sm" data-ddc="${n}">${n} ${esc(l)}</button>`).join(" ")}
+function autoDDC(){if(ddcManual)return;const s=suggestDDC(formSnapshot());$("h_ddc").value=s.ddc;$("ddcHint").textContent=s.ddc?`Suggested from ${s.why}. Check it against the DDC.`:"No DDC found from the title. Type the DDC class number, or choose below.";showChips(!s.ddc);}
+function autoCall(){autoSubj();autoDDC();if(callManual)return;const s=suggestCall(formSnapshot());if(s)$("h_call").value=s;}
 async function isbnFind(){const isbn=$("h_isbn").value.replace(/[^0-9Xx]/g,"");if(isbn.length<10){$("isbnHint").textContent="Type the 10- or 13-digit ISBN first.";return}
   $("isbnHint").textContent="Looking up…";
   try{const r=await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`);const j=await r.json();const b=j["ISBN:"+isbn];
@@ -1301,13 +1313,13 @@ function renderAdd(){const ok=canAdd();$("addGate").hidden=ok;$("addArea").hidde
   if(!ok)$("addGate").innerHTML=!ME?`<strong>Log in to add resources</strong><a href="#account">Log in or sign up</a>. The division librarian approves new librarians.`:ME.status==="pending"?"<strong>Waiting for approval</strong>The division librarian will approve your account soon. You can add resources once you're approved.":"<strong>Your account is not approved</strong>Contact the division librarian.";
   else if(!editing&&!$("h_school").value&&myLib())$("h_school").value=myLib();}
 function setCoverPreview(src){$("coverPrev").innerHTML=src?`<img src="${esc(src)}" alt="Cover preview">`:"No cover";$("coverClear").hidden=!src}
-function resetForm(){editing=null;coverData=null;coverChanged=false;callManual=false;ddcManual=false;
+function resetForm(){editing=null;coverData=null;coverChanged=false;callManual=false;ddcManual=false;subjManual=false;ddcWarned=false;showChips(false);
   $("formTitle").textContent="Add a resource to your library's holdings";$("cancelEdit").hidden=true;$("saveBtn").textContent="Save resource";$("delBox").innerHTML="";
   const keep=$("h_school").value;$("addForm").reset();$("h_school").value=lockedLib()||keep;$("h_copies").value=1;setCoverPreview(null);
   $("callHint").textContent="A call number is suggested from the subject, author and year. You can change it.";}
 function startEdit(){const h=current;if(!h||!canEditRec(h))return;closeModal();location.hash="add";
   setTimeout(()=>{Object.entries(F).forEach(([k,f])=>$("h_"+k).value=h[f]??"");if(!$("h_lang").value)$("h_lang").value="English";$("h_subject").value=legacySubj(h.subject,h.language)||"";
-    editing=h;callManual=true;ddcManual=true;coverChanged=false;coverData=null;setCoverPreview(h.cover||null);
+    editing=h;callManual=true;ddcManual=true;subjManual=true;ddcWarned=false;coverChanged=false;coverData=null;setCoverPreview(h.cover||null);
     $("formTitle").textContent="Edit resource";$("cancelEdit").hidden=false;$("saveBtn").textContent="Update resource";
     $("delBox").innerHTML=`<button type="button" class="danger" id="delAsk">Remove from holdings</button>`;$("h_title").focus();},50);}
 function showSaved(h){const box=$("savedBox");box.hidden=false;const codes=barcodesOf(h);
@@ -1320,6 +1332,10 @@ $("addForm").addEventListener("submit",async e=>{e.preventDefault();if(!canAdd()
   const d={};Object.entries(F).forEach(([k,f])=>d[f]=$("h_"+k).value.trim());
   if(lockedLib())d.schoolId=lockedLib();
   if(!d.schoolId||!d.accessionNo||!d.title||!d.subject){$("formMsg").textContent="Fill in library, accession no., title and subject.";return}
+  const pre0=(SUBJ_CALL[d.subject]||[""])[0];
+  if(!ddcWarned&&!NO_CLASS.includes(pre0)&&(!/^\d{3}/.test(d.ddc)||/^000/.test(d.ddc))){ddcWarned=true;
+    $("formMsg").innerHTML=`<b>Check the DDC number.</b> ${d.ddc?"000 is only for general works like almanacs, records, and books about libraries or computers (004–006). Encyclopedias are 030–039.":"There is no DDC number yet."} Correct it in <b>Classification and call number</b>, or press <b>Save</b> again to save as is.`;$("h_ddc").focus();return}
+  ddcWarned=false;
   if(!d.callNo)d.callNo=suggestCall(d);
   if(editing)d._id=editing._id;
   const payload={rec:d};if(coverChanged)payload.cover=coverData||null;
@@ -1329,10 +1345,13 @@ $("addForm").addEventListener("submit",async e=>{e.preventDefault();if(!canAdd()
   catch(err){$("formMsg").textContent="Couldn't save: "+err.message}
   $("saveBtn").disabled=false;});
 $("cancelEdit").onclick=()=>{resetForm();$("formMsg").textContent=""};
-["h_subject","h_type","h_year","h_author","h_title"].forEach(id=>$(id).addEventListener("input",autoCall));
+["h_type","h_year","h_author","h_title"].forEach(id=>$(id).addEventListener("input",autoCall));
 $("h_call").addEventListener("input",()=>{callManual=$("h_call").value.trim()!==""});
 $("callSuggest").onclick=()=>{callManual=false;$("h_call").value=suggestCall(formSnapshot());$("callHint").textContent="Collection prefix + DDC class + LC Cutter number + year. Check it before saving."};
 $("ddcSuggest").onclick=()=>{ddcManual=false;callManual=false;autoCall()};
+$("h_subject").addEventListener("change",()=>{subjManual=$("h_subject").value!=="";ddcManual=false;autoCall()});
+$("ddcChips").addEventListener("click",e=>{const b=e.target.closest("button[data-ddc]");if(!b)return;$("h_ddc").value=b.dataset.ddc;ddcManual=true;
+  const sub=ddcToSubj(b.dataset.ddc);if(sub){$("h_subject").value=sub;subjManual=true}$("ddcHint").textContent="Chosen by you. Check it against the DDC.";showChips(false);if(!callManual)$("h_call").value=suggestCall(formSnapshot())});
 $("h_ddc").addEventListener("input",()=>{ddcManual=$("h_ddc").value.trim()!=="";if(!callManual)$("h_call").value=suggestCall(formSnapshot())});
 $("isbnFind").onclick=isbnFind;
 $("h_cover").addEventListener("change",()=>{const f=$("h_cover").files[0];if(!f)return;if(!/^image\//.test(f.type)){toast("Choose an image file.");return}
