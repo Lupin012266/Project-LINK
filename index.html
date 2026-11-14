@@ -297,16 +297,15 @@ header.top .who{max-width:min(100%,560px)}header.top .role{justify-content:flex-
           <label>Type of resource<select id="h_type"></select></label>
         </div>
       </fieldset>
-      <fieldset><legend>Classification and call number</legend>
-        <p class="note" style="margin:0 0 10px">Fill in the title, author and subject first. The DDC number and call number are suggested from them.</p>
+      <fieldset><legend>Call number</legend>
+        <p class="note" style="margin:0 0 10px">Fill in the title, author, year and subject first. The call number is made automatically from them.</p>
+        <input type="hidden" id="h_ddc"><button type="button" id="ddcSuggest" hidden></button>
         <div class="formgrid">
-          <label class="span2">DDC class no.
-            <span class="callfield"><input id="h_ddc" inputmode="decimal" placeholder="e.g. 599.75"><button type="button" class="ghost sm" id="ddcSuggest">Suggest</button></span>
-            <span class="hint" id="ddcHint">Suggested from the title and subject. Check it against the DDC.</span><span class="ddcchips" id="ddcChips" hidden></span>
-          </label>
           <label class="span2">Call number
-            <span class="callfield"><input id="h_call" placeholder="Fills in automatically"><button type="button" class="ghost sm" id="callSuggest">Suggest</button></span>
-            <span class="hint" id="callHint">Made from the collection prefix, DDC class, LC Cutter number of the author (or title) and year. You can change it.</span>
+            <span class="callfield"><input id="h_call" placeholder="Fills in automatically"><button type="button" class="ghost sm" id="callSuggest">Make again</button></span>
+            <span class="hint" id="ddcHint">The first number is the DDC class, suggested from the title and subject.</span>
+            <span class="hint" id="callHint">DDC class + author mark (LC Cutter) + year. You can change it.</span>
+            <span class="ddcchips" id="ddcChips" hidden></span>
           </label>
         </div>
       </fieldset>
@@ -639,12 +638,12 @@ function suggestDDC(d){const t=fold(String(d.title||"")).toLowerCase();
   const base=(SUBJ_CALL[d.subject]||["",""])[1];return base&&base!=="000"?{ddc:base,why:"the subject"}:{ddc:"",why:""}}
 function checkClass(d){const hard=[],soft=[];const fix={ddc:String(d.ddc||"").trim(),subject:d.subject,callNo:d.callNo};
   const pre=(SUBJ_CALL[d.subject]||[""])[0],isD=/^\d{3} /.test(d.subject);const ts=suggestDDC({title:d.title,subject:""});
-  if(fix.ddc&&!/^\d{3}(\.\d+)?$/.test(fix.ddc)){const m=/\d{3}(\.\d+)?/.exec(fix.ddc);hard.push(`The DDC number “${esc(fix.ddc)}” is not written correctly. It should be 3 digits, with an optional decimal (example: 599.75).`);fix.ddc=m?m[0]:(ts.ddc||"")}
-  if(!fix.ddc){if(!NO_CLASS.includes(pre))soft.push(ts.ddc?`There is no DDC number. Suggested: <b>${ts.ddc}</b> (from ${esc(ts.why)}).`:"There is no DDC number. Type one, or choose from the buttons under DDC class no.");if(ts.ddc)fix.ddc=ts.ddc}
+  if(fix.ddc&&!/^\d{3}(\.\d+)?$/.test(fix.ddc)){const m=/\d{3}(\.\d+)?/.exec(fix.ddc);hard.push(`The DDC number “${esc(fix.ddc)}” (first part of the call number) is not written correctly. It should be 3 digits, with an optional decimal (example: 599.75).`);fix.ddc=m?m[0]:(ts.ddc||"")}
+  if(!fix.ddc){if(!NO_CLASS.includes(pre))soft.push(ts.ddc?`The call number has no DDC class number. Suggested: <b>${ts.ddc}</b> (from ${esc(ts.why)}).`:"The call number has no DDC class number. Type one at the start of the call number, or choose from the buttons under Call number.");if(ts.ddc)fix.ddc=ts.ddc}
   else if(/^000/.test(fix.ddc)){soft.push(`<b>000</b> is only for general works (almanacs, records, books about knowledge itself). Encyclopedias are 030–039, computers 004–006.${ts.ddc&&!/^0/.test(ts.ddc)?` Suggested: <b>${ts.ddc}</b> (from ${esc(ts.why)}).`:""}`);if(ts.ddc&&!/^0/.test(ts.ddc))fix.ddc=ts.ddc}
   else if(ts.ddc&&ts.ddc[0]!==fix.ddc[0]){soft.push(`The DDC <b>${esc(fix.ddc)}</b> is in ${esc(ddcToSubj(fix.ddc)||"another class")}, but the ${esc(ts.why)} suggests <b>${ts.ddc}</b> (${esc(ddcToSubj(ts.ddc))}).`);fix.ddc=ts.ddc}
   const D0=/^\d{3}(\.\d+)?$/.test(String(d.ddc||"").trim())?String(d.ddc).trim():"";
-  if(isD&&D0){const want=ddcToSubj(D0);if(want&&want!==d.subject)hard.push(`DDC <b>${esc(D0)}</b> belongs to <b>${esc(want)}</b>, but the subject chosen is <b>${esc(d.subject)}</b>.`)}
+  if(isD&&D0){const want=ddcToSubj(D0);if(want&&want!==d.subject)hard.push(`The call number class <b>${esc(D0)}</b> belongs to <b>${esc(want)}</b>, but the subject chosen is <b>${esc(d.subject)}</b>.`)}
   if(isD&&fix.ddc){const want=ddcToSubj(fix.ddc);if(want)fix.subject=want}
   const pre2=(SUBJ_CALL[fix.subject]||[""])[0],expect=suggestCall({...d,ddc:fix.ddc,subject:fix.subject});
   if(D0&&!NO_CLASS.includes(pre)&&d.callNo){const m=/(?:^|[^\d.])(\d{3})(?:\.\d+)?(?!\d)/.exec(d.callNo);
@@ -655,7 +654,7 @@ function showClassCheck(ck){const b=$("classCheck");b.hidden=false;const f=ck.fi
   b.innerHTML=`<h3>Check the classification</h3><ul>${ck.hard.map(x=>`<li class="bad">${x}</li>`).join("")}${ck.soft.map(x=>`<li>${x}</li>`).join("")}</ul>
    ${ck.changed?`<p>Suggested: subject <b>${esc(f.subject)}</b> · DDC <b>${esc(f.ddc||"—")}</b> · call no. <span class="call">${esc(f.callNo||"—")}</span></p><button type="button" id="ccFix">Use the suggestion</button>`:""}
    <p class="note">${ck.hard.length?"The red items must be fixed before saving. You can fix them yourself or use the suggestion.":"If you are sure yours is right, press <b>Save</b> again."}</p>`;
-  if(ck.changed)$("ccFix").onclick=()=>{$("h_ddc").value=f.ddc;$("h_subject").value=f.subject;$("h_call").value=f.callNo;ddcManual=subjManual=callManual=true;ddcWarned=false;
+  if(ck.changed)$("ccFix").onclick=()=>{$("h_ddc").value=f.ddc;$("h_subject").value=f.subject;$("h_call").value=f.callNo;ddcManual=subjManual=callManual=true;ddcWarned=false;showChips(false);
     b.hidden=true;$("formMsg").textContent="Suggestion applied. Check it, then press Save.";$("saveBtn").focus()};
   b.scrollIntoView({block:"nearest",behavior:"smooth"})}
 function ddcToSubj(ddc){const m=/^(\d{3})/.exec(String(ddc||""));if(!m)return "";const n=parseInt(m[1],10);if(n>=899&&n<900)return "899 Filipino Literature";
@@ -672,7 +671,7 @@ let ddcManual=false,subjManual=false,ddcWarned=false;
 const STORY_CHIPS=[["899.2113","Storybook / kuwento (Filipino)"],["823","Storybook / novel (English)"],["031","Encyclopedia"],["423","English dictionary"]];
 function autoSubj(){if(subjManual)return;const s=suggestDDC({title:$("h_title").value,subject:""});const sub=s.ddc?ddcToSubj(s.ddc):"";if(sub)$("h_subject").value=sub}
 function showChips(on){const c=$("ddcChips");c.hidden=!on;if(on&&!c.innerHTML)c.innerHTML=" Not sure? Choose one: "+STORY_CHIPS.map(([n,l])=>`<button type="button" class="ghost sm" data-ddc="${n}">${n} ${esc(l)}</button>`).join(" ")}
-function autoDDC(){if(ddcManual)return;const s=suggestDDC(formSnapshot());$("h_ddc").value=s.ddc;$("ddcHint").textContent=s.ddc?`Suggested from ${s.why}. Check it against the DDC.`:"No DDC found from the title. Type the DDC class number, or choose below.";showChips(!s.ddc);}
+function autoDDC(){if(ddcManual)return;const s=suggestDDC(formSnapshot());$("h_ddc").value=s.ddc;$("ddcHint").textContent=s.ddc?`DDC class ${s.ddc} suggested from ${s.why}. Check it.`:"No DDC class found from the title. Choose one below, or type it at the start of the call number.";showChips(!s.ddc);}
 function autoCall(){autoSubj();autoDDC();if(callManual)return;const s=suggestCall(formSnapshot());if(s)$("h_call").value=s;}
 async function isbnFind(){const isbn=$("h_isbn").value.replace(/[^0-9Xx]/g,"");if(isbn.length<10){$("isbnHint").textContent="Type the 10- or 13-digit ISBN first.";return}
   $("isbnHint").textContent="Looking up…";
@@ -1357,6 +1356,7 @@ $("addForm").addEventListener("submit",async e=>{e.preventDefault();if(!canAdd()
   const d={};Object.entries(F).forEach(([k,f])=>d[f]=$("h_"+k).value.trim());
   if(lockedLib())d.schoolId=lockedLib();
   if(!d.schoolId||!d.accessionNo||!d.title||!d.subject){$("formMsg").textContent="Fill in library, accession no., title and subject.";return}
+  {const tk=d.callNo.split(/\s+/).find(t=>/^\d{3}(\.\d+)?$/.test(t));if(tk)d.ddc=tk;else if(d.callNo&&!NO_CLASS.includes(d.callNo.split(/\s+/)[0]))d.ddc="";}
   {const ck=checkClass(d),sig=[d.title,d.subject,d.ddc,d.callNo].join("|");
    if(ck.hard.length||(ck.soft.length&&ddcWarned!==sig)){showClassCheck(ck);ddcWarned=ck.hard.length?false:sig;$("formMsg").textContent=ck.hard.length?"Please fix the classification first (see below).":"Please check the classification (see below).";return}}
   ddcWarned=false;$("classCheck").hidden=true;
@@ -1371,11 +1371,11 @@ $("addForm").addEventListener("submit",async e=>{e.preventDefault();if(!canAdd()
 $("cancelEdit").onclick=()=>{resetForm();$("formMsg").textContent=""};
 ["h_type","h_year","h_author","h_title"].forEach(id=>$(id).addEventListener("input",autoCall));
 $("h_call").addEventListener("input",()=>{callManual=$("h_call").value.trim()!==""});
-$("callSuggest").onclick=()=>{callManual=false;$("h_call").value=suggestCall(formSnapshot());$("callHint").textContent="Collection prefix + DDC class + LC Cutter number + year. Check it before saving."};
+$("callSuggest").onclick=()=>{ddcManual=false;callManual=false;autoDDC();$("h_call").value=suggestCall(formSnapshot());$("callHint").textContent="Collection prefix + DDC class + LC Cutter number + year. Check it before saving."};
 $("ddcSuggest").onclick=()=>{ddcManual=false;callManual=false;autoCall()};
 $("h_subject").addEventListener("change",()=>{subjManual=$("h_subject").value!=="";ddcManual=false;autoCall()});
 $("ddcChips").addEventListener("click",e=>{const b=e.target.closest("button[data-ddc]");if(!b)return;$("h_ddc").value=b.dataset.ddc;ddcManual=true;
-  const sub=ddcToSubj(b.dataset.ddc);if(sub){$("h_subject").value=sub;subjManual=true}$("ddcHint").textContent="Chosen by you. Check it against the DDC.";showChips(false);if(!callManual)$("h_call").value=suggestCall(formSnapshot())});
+  const sub=ddcToSubj(b.dataset.ddc);if(sub){$("h_subject").value=sub;subjManual=true}$("ddcHint").textContent=`DDC class ${b.dataset.ddc} chosen by you.`;showChips(false);callManual=false;$("h_call").value=suggestCall(formSnapshot())});
 $("h_ddc").addEventListener("input",()=>{ddcManual=$("h_ddc").value.trim()!=="";if(!callManual)$("h_call").value=suggestCall(formSnapshot())});
 $("isbnFind").onclick=isbnFind;
 $("h_cover").addEventListener("change",()=>{const f=$("h_cover").files[0];if(!f)return;if(!/^image\//.test(f.type)){toast("Choose an image file.");return}
