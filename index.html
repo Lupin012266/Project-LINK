@@ -447,7 +447,9 @@ header.top .who{max-width:min(100%,560px)}header.top .role{justify-content:flex-
 
 <script>
 /* ===================== constants ===================== */
-const SUBJECTS=["000 General Works","100 Philosophy & Psychology","200 Religion & Values Education","300 Social Sciences / Araling Panlipunan","400 Language / English","500 Science & Mathematics","600 Technology / TLE & Health","700 Arts, MAPEH & Recreation","800 Literature","899 Filipino Literature","900 History & Geography","Fiction","Easy Books (picture books, K–3)","Biography","Reference (Dictionary, Encyclopedia)","Filipiniana","Textbooks / Learner's Materials","Teacher's Guides","Periodicals"];
+const SUBJECTS=["000 General Works","100 Philosophy & Psychology","200 Religion & Values Education","300 Social Sciences / Araling Panlipunan","400 Language / English","500 Science & Mathematics","600 Technology / TLE & Health","700 Arts, MAPEH & Recreation","800 Literature","899 Filipino Literature","900 History & Geography","Biography","Reference (Dictionary, Encyclopedia)","Filipiniana","Textbooks / Learner's Materials","Teacher's Guides","Periodicals"];
+const LEGACY_LIT=s=>/^(fiction|easy( books?)?|picture books?)\b/i.test(String(s||"").trim());
+const legacySubj=(s,lang)=>LEGACY_LIT(s)?(/^(filipino|tagalog)/i.test(String(lang||""))?"899 Filipino Literature":"800 Literature"):s;
 const SUBJ_CALL={"000 General Works":["","000"],"100 Philosophy & Psychology":["","100"],"200 Religion & Values Education":["","200"],"300 Social Sciences / Araling Panlipunan":["","300"],"400 Language / English":["","420"],"500 Science & Mathematics":["","500"],"600 Technology / TLE & Health":["","600"],"700 Arts, MAPEH & Recreation":["","700"],"800 Literature":["","800"],"899 Filipino Literature":["","899.21"],"900 History & Geography":["","900"],"Fiction":["F",""],"Easy Books (picture books, K–3)":["E",""],"Biography":["B","920"],"Reference (Dictionary, Encyclopedia)":["R","030"],"Filipiniana":["Fil","959.9"],"Textbooks / Learner's Materials":["TX",""],"Teacher's Guides":["TG","371.3"],"Periodicals":["Per","050"]};
 const GRADES=["","Kindergarten","Grade 1","Grade 2","Grade 3","Grade 4","Grade 5","Grade 6","Grade 7","Grade 8","Grade 9","Grade 10","Grade 11","Grade 12","Multi-grade / General"];
 const TYPES=["Book","Textbook","Learner's Material","Reference","Periodical","E-resource","Audio-visual","Other"];
@@ -842,7 +844,7 @@ async function loadProfile(){const id=$("d_lib").value;try{const r=await api("pr
 /* ---- division analytics: DDC classes, publishers, authors ---- */
 const DDC_NAMES={0:"000 General Works",100:"100 Philosophy & Psychology",200:"200 Religion",300:"300 Social Sciences",400:"400 Language",500:"500 Science & Mathematics",600:"600 Technology",700:"700 Arts & Recreation",800:"800 Literature",900:"900 History & Geography"};
 const CH_COLORS=["#1f3f8f","#b98a1e","#227a4c","#b3362d","#6d4bb3","#0f7d8c","#c2621a","#7a6a12","#3f6fd1","#a3346f"];
-function ddcClass(h){for(const s of [h.ddc,h.callNo]){const m=/(?:^|[^\d.])(\d{3})(?:\.\d+)?(?!\d)/.exec(String(s||""));if(m)return Math.floor(parseInt(m[1],10)/100)*100}
+function ddcClass(h){if(LEGACY_LIT(h.subject))return 800;for(const s of [h.ddc,h.callNo]){const m=/(?:^|[^\d.])(\d{3})(?:\.\d+)?(?!\d)/.exec(String(s||""));if(m)return Math.floor(parseInt(m[1],10)/100)*100}
   const m=/^(\d{3})/.exec(h.subject||"");return m?Math.floor(parseInt(m[1],10)/100)*100:null}
 function lev(a,b){if(a===b)return 0;const m=a.length,n=b.length;if(Math.abs(m-n)>2)return 3;let p=Array.from({length:n+1},(_,j)=>j);
   for(let i=1;i<=m;i++){const c=[i];for(let j=1;j<=n;j++)c[j]=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1));p=c}return p[n]}
@@ -882,7 +884,7 @@ async function loadDivCharts(){const box=$("dc_kpis");
     const big=S.classes.slice().sort((a,b)=>b.titles-a.titles)[0],few=S.pubs.length?S.pubs[S.pubs.length-1].titles:0,fewList=S.pubs.filter(p=>p.titles===few);
     box.innerHTML=kpis([[S.titles.toLocaleString(),`titles encoded (${S.copies.toLocaleString()} copies)`],[`${S.titles?Math.round(classed/S.titles*100):0}%`,`of titles have a DDC class (000–900)`],[big&&big.titles?esc(big.label):"—","biggest DDC class"],[S.pubs.length.toLocaleString(),"different publishers"],[S.auths.length.toLocaleString(),"different authors"]]);
     const pct=c=>classed?c.titles/classed*100:0;
-    $("dc_ddcnote").innerHTML=S.noDdc.titles?`<b>${S.noDdc.titles.toLocaleString()}</b> title(s) (${Math.round(S.noDdc.titles/S.titles*100)}%) have no DDC number yet, for example fiction, easy books or records without a call number. They are not part of the percentages above.`:"Every encoded title has a DDC class.";
+    $("dc_ddcnote").innerHTML=S.noDdc.titles?`<b>${S.noDdc.titles.toLocaleString()}</b> title(s) (${Math.round(S.noDdc.titles/S.titles*100)}%) have no DDC number yet, for example records without a call number or a valid subject. They are not part of the percentages above.`:"Every encoded title has a DDC class.";
     $("dc_pubfew").innerHTML=S.pubs.length>10?`<div class="fewlist"><b>Fewest titles:</b> ${fewList.length.toLocaleString()} publisher(s) have only ${few} title${few===1?"":"s"} each${fewList.length<=12?`: ${fewList.map(p=>esc(p.name)).join(", ")}`:`, for example ${fewList.slice(0,10).map(p=>esc(p.name)).join(", ")} …`}${S.noPub?`<br><b>${S.noPub.toLocaleString()}</b> title(s) have no publisher encoded.`:""}</div>`:S.noPub?`<p class="note">${S.noPub.toLocaleString()} title(s) have no publisher encoded.</p>`:"";
     $("dc_authnote").innerHTML=S.noAuth?`${S.noAuth.toLocaleString()} title(s) have no author encoded.`:"";
     const topP=S.pubs.slice(0,10),topA=S.auths.slice(0,10);
@@ -1304,7 +1306,7 @@ function resetForm(){editing=null;coverData=null;coverChanged=false;callManual=f
   const keep=$("h_school").value;$("addForm").reset();$("h_school").value=lockedLib()||keep;$("h_copies").value=1;setCoverPreview(null);
   $("callHint").textContent="A call number is suggested from the subject, author and year. You can change it.";}
 function startEdit(){const h=current;if(!h||!canEditRec(h))return;closeModal();location.hash="add";
-  setTimeout(()=>{Object.entries(F).forEach(([k,f])=>$("h_"+k).value=h[f]??"");if(!$("h_lang").value)$("h_lang").value="English";
+  setTimeout(()=>{Object.entries(F).forEach(([k,f])=>$("h_"+k).value=h[f]??"");if(!$("h_lang").value)$("h_lang").value="English";$("h_subject").value=legacySubj(h.subject,h.language)||"";
     editing=h;callManual=true;ddcManual=true;coverChanged=false;coverData=null;setCoverPreview(h.cover||null);
     $("formTitle").textContent="Edit resource";$("cancelEdit").hidden=false;$("saveBtn").textContent="Update resource";
     $("delBox").innerHTML=`<button type="button" class="danger" id="delAsk">Remove from holdings</button>`;$("h_title").focus();},50);}
@@ -1347,9 +1349,9 @@ function normDate(s){s=String(s||"").trim();if(!s)return"";if(/^\d{4}-\d{2}-\d{2
 function parseRows(){const lines=$("b_text").value.split(/\r?\n/).filter(l=>l.trim());const out=[],bad=[];
   lines.forEach((l,i)=>{const c=l.split(l.includes("\t")?"\t":",").map(x=>x.trim());
     if(i===0&&/accession/i.test(c[0]))return;
-    const [acc,title,author,call,subject,grade,copies,year,cond,fund,date,dr,publisher,isbn]=c;
+    const [acc,title,author,call,subject0,grade,copies,year,cond,fund,date,dr,publisher,isbn]=c;
     if(!acc||!title){bad.push(i+1);return}
-    const sub=SUBJECTS.find(s=>s.toLowerCase()===String(subject||"").toLowerCase())||SUBJECTS.find(s=>subject&&s.toLowerCase().includes(subject.toLowerCase()))||"000 General Works";
+    const subject=legacySubj(subject0);const sub=SUBJECTS.find(s=>s.toLowerCase()===String(subject||"").toLowerCase())||SUBJECTS.find(s=>subject&&s.toLowerCase().includes(subject.toLowerCase()))||"000 General Works";
     const r={accessionNo:acc,title,author:author||"",callNo:call||"",subject:sub,grade:grade||"",copies:Math.max(1,parseInt(copies)||1),year:year||"",
       condition:/poor/i.test(cond)?"Poor":/fair/i.test(cond)?"Fair":"Good",fund:fund||"",dateReceived:normDate(date),drNo:dr||"",publisher:publisher||"",isbn:isbn||"",type:"Book"};
     if(!r.callNo)r.callNo=suggestCall(r);out.push(r);});
@@ -1584,7 +1586,7 @@ async function api(action,data){data=data||{};
   case "records_full":{const rows=await fetchAll({p_school:data.school||"",p_cat:data.cat||""});return{rows:rows.map(hout),name:scopeName(data)}}
   case "holding_save":{needLib();const rec=data.rec||{};const id=Number(rec._id)||0;
     const sid=ME.role==="admin"?cleanId(rec.schoolId):ME.schoolId;if(!sid||!schools.find(x=>x.id===sid))throw new Error("Choose a registered library.");
-    const acc=S(rec.accessionNo,60),title=S(rec.title,500),subject=SUBJ().includes(rec.subject)?rec.subject:"";
+    const acc=S(rec.accessionNo,60),title=S(rec.title,500),subj0=legacySubj(rec.subject,rec.language),subject=SUBJ().includes(subj0)?subj0:"";
     if(!acc||!title||!subject)throw new Error("Fill in accession no., title and subject.");
     const dup=chk(await sb.from("holdings").select("id,title").eq("school_id",sid).eq("accession_no",acc).neq("id",id||-1).maybeSingle());
     if(dup)throw new Error(`Accession no. ${acc} already exists in this library ("${dup.title}").`);
@@ -1610,7 +1612,7 @@ async function api(action,data){data=data||{};
     const existing=new Set();for(let off=0;;off+=1000){const rows=chk(await sb.from("holdings").select("accession_no").eq("school_id",sid).range(off,off+999))||[];rows.forEach(x=>existing.add(x.accession_no));if(rows.length<1000)break}
     let skipped=0;const ins=[];(data.rows||[]).slice(0,500).forEach(r=>{const acc=S(r.accessionNo,60),title=S(r.title,500);if(!acc||!title||existing.has(acc)){skipped++;return}existing.add(acc);
       const copies=Math.max(1,Math.min(999,parseInt(r.copies)||1));
-      ins.push({school_id:sid,accession_no:acc,call_no:S(r.callNo,80),title,author:S(r.author,300),pub_year:S(r.year,10),subject:SUBJ().includes(r.subject)?r.subject:"000 General Works",grade:S(r.grade,40),rtype:"Book",copies,cond:["Good","Fair","Poor"].includes(r.condition)?r.condition:"Good",fund:S(r.fund,80),date_received:D(r.dateReceived),dr_no:S(r.drNo,80),publisher:S(r.publisher,200),isbn:S(r.isbn,40),lang:"English",barcodes:makeBarcodes(sid,acc,copies)})});
+      ins.push({school_id:sid,accession_no:acc,call_no:S(r.callNo,80),title,author:S(r.author,300),pub_year:S(r.year,10),subject:SUBJ().includes(legacySubj(r.subject))?legacySubj(r.subject):"000 General Works",grade:S(r.grade,40),rtype:"Book",copies,cond:["Good","Fair","Poor"].includes(r.condition)?r.condition:"Good",fund:S(r.fund,80),date_received:D(r.dateReceived),dr_no:S(r.drNo,80),publisher:S(r.publisher,200),isbn:S(r.isbn,40),lang:"English",barcodes:makeBarcodes(sid,acc,copies)})});
     if(ins.length)chk(await sb.from("holdings").insert(ins));return{added:ins.length,skipped}}
   case "dashboard":return chk(await sb.rpc("dashboard_stats"));
   case "analytics":{needLogin();return chk(await sb.rpc("site_analytics",{p_days:Math.max(1,Math.min(3650,Number(data.days)||30))}))}
