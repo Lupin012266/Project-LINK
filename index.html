@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Project LINK Union Catalog</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bitter:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <style>
@@ -15,8 +15,8 @@
   --accent:#1f3f8f; --accent-ink:#ffffff; --gold:#b98a1e; --soft:#e9eefa;
   --ok:#227a4c; --warn:#a86a07; --bad:#b3362d; --scrim:rgba(16,21,42,.55);
   --label-bg:#ffffff; --label-ink:#000000;
-  --display:"Bitter",Georgia,"Times New Roman",serif;
-  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+  --display:"Source Serif 4",Georgia,"Times New Roman",serif;
+  --body:"Inter",system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
   color-scheme:light;
 }
@@ -199,6 +199,13 @@ label.check{flex-direction:row;gap:8px;align-items:center;font-weight:500;margin
 .rulesbox>summary,details>summary{cursor:pointer;font-weight:700;color:var(--accent)}.rulesbox{margin-top:6px}
 .charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:18px;margin:14px 0}.chart h4{margin:0 0 8px}.chart .prow{grid-template-columns:minmax(120px,40%) 1fr 90px}.prow small{color:var(--mute,#667)}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:10px 0}
+.chartgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.chartcard{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.chartcard.wide{grid-column:1/-1}.chartcard h3{font-size:17px}.chartcard .note{margin:0}
+.chartbox{position:relative;width:100%;min-height:200px}
+.fewlist{font-size:13px;line-height:1.55;border-left:3px solid var(--bad);padding:4px 10px;margin-top:6px}
+.locked{text-align:center;padding:28px 16px}
+@media (max-width:800px){.chartgrid{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:700px){.charts{grid-template-columns:1fr}.chart .prow{grid-template-columns:1fr 70px}.chart .ptrack{grid-column:1/-1;order:3}}
 #illOut > .stack > h3{color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.35)}
 header.top .who{max-width:min(100%,560px)}header.top .role{justify-content:flex-end;text-align:right}
@@ -229,7 +236,7 @@ header.top .who{max-width:min(100%,560px)}header.top .role{justify-content:flex-
     <a href="#add" data-view="add">Add resource</a>
     <a href="#loans" data-view="loans">Interlibrary loans<span class="count" id="illCount" hidden></span></a>
     <a href="#dashboard" data-view="dashboard">Dashboard</a>
-    <a href="#reports" data-view="reports">Reports</a>
+    <a href="#reports" data-view="reports" id="repTab" hidden>Reports</a>
     <a href="#libraries" data-view="libraries">Libraries</a>
     <a href="#analytics" data-view="analytics" id="anaTab" hidden>Site analytics</a>
     <a href="#account" data-view="account"><span id="acctLabel">Sign up / Log in</span><span class="count" id="pendCount" hidden></span></a>
@@ -348,6 +355,18 @@ header.top .who{max-width:min(100%,560px)}header.top .role{justify-content:flex-
   <!-- DASHBOARD -->
   <section id="v-dashboard" class="stack" hidden>
     <div class="stats" id="stats"></div>
+    <div class="panel stack" id="divCharts">
+      <div><h2>Division collection analytics</h2><p class="note" style="margin:4px 0 0">All libraries in the Schools Division of Agusan del Norte, based on every title encoded in Project LINK.</p></div>
+      <div class="kpis" id="dc_kpis"><p class="note">Loading charts…</p></div>
+      <div class="chartgrid">
+        <div class="chartcard wide"><h3>Encoded titles by DDC class (000–900)</h3><p class="note">Percentage of encoded titles in each Dewey Decimal class, taken from the call number or DDC number of each record.</p>
+          <div class="chartbox" style="height:380px"><canvas id="c_ddc" role="img" aria-label="Bar chart of the percentage of encoded titles in each DDC class"></canvas></div><div id="f_ddc"></div><div id="dc_ddcnote" class="note"></div></div>
+        <div class="chartcard"><h3>Top 10 publishers</h3><p class="note">Publishers with the most titles. Spelling variations of the same publisher are counted together.</p>
+          <div class="chartbox" style="height:380px"><canvas id="c_pub" role="img" aria-label="Bar chart of the ten publishers with the most titles"></canvas></div><div id="f_pub"></div><div id="dc_pubfew"></div></div>
+        <div class="chartcard"><h3>Top 10 authors</h3><p class="note">Authors with the most titles across all libraries.</p>
+          <div class="chartbox" style="height:380px"><canvas id="c_auth" role="img" aria-label="Bar chart of the ten authors with the most titles"></canvas></div><div id="f_auth"></div><div id="dc_authnote" class="note"></div></div>
+      </div>
+    </div>
     <div class="split">
       <div class="stack"><h2>Holdings per library</h2><div class="tablebox" id="perSchool"></div></div>
       <div class="stack"><h2>Collection by subject</h2><div class="tablebox" id="perSubject"></div></div>
@@ -357,7 +376,7 @@ header.top .who{max-width:min(100%,560px)}header.top .role{justify-content:flex-
         <div><h2>Collection profile by subject</h2><p class="note" style="margin:4px 0 0">Which subjects have many books and which have few, by number of copies.</p></div>
         <div class="row">
           <label class="w180" style="min-width:220px">Library<select id="d_lib"></select></label>
-          <button type="button" class="ghost" id="d_print">Print chart</button>
+          <button type="button" class="ghost" id="d_print" hidden>Print chart</button>
         </div>
       </div>
       <div id="profileOut"></div>
@@ -500,8 +519,9 @@ function libOptions(){
 
 /* ===================== routing ===================== */
 const VIEWS=["home","catalog","add","loans","dashboard","reports","libraries","analytics","account"];
-function currentView(){const h=location.hash.slice(1);return VIEWS.includes(h)&&(h!=="home"||ME)?h:(ME?"home":"catalog")}
+function currentView(){const h=location.hash.slice(1);return VIEWS.includes(h)&&(h!=="home"||ME)&&(h!=="reports"||ME)?h:(ME?"home":"catalog")}
 function route(){const v=currentView();
+  if(location.hash==="#reports"&&!ME){toast("Please log in to view and print reports.");history.replaceState(null,"","#account");return route()}
   VIEWS.forEach(x=>{$("v-"+x).hidden=x!==v});
   document.querySelectorAll("nav.tabs a").forEach(a=>{if(a.dataset.view===v)a.setAttribute("aria-current","page");else a.removeAttribute("aria-current")});
   if(v==="home")loadHome();else if(v==="catalog")loadCatalog();else if(v==="add")renderAdd();else if(v==="loans")loadLoans();else if(v==="dashboard")loadDashboard();
@@ -515,7 +535,7 @@ function applyRole(){libOptions();
   if(!ME)rl.innerHTML=`Browsing as a visitor · <a href="#account">Log in</a>`;
   else rl.innerHTML=`<span>Logged in as <b>${esc(ME.name)}</b> · ${isAdmin()?"Division librarian":isDiv()?esc(ME.userType.replace(" (Division Office)",""))+" · Division Office":isApproved()?esc(libName(ME.schoolId)):ME.status==="rejected"?"not approved":"waiting for approval"}</span><span id="locLine"></span><button type="button" class="ghost sm" id="logoutBtn">Log out</button>`;
   if(ME){showLoc();gpsGeo()}
-  $("acctLabel").textContent=!ME?"Sign up / Log in":isAdmin()?"Librarian accounts":"My profile";$("homeTab").hidden=!ME;$("r_backup").hidden=!isAdmin();$("anaTab").hidden=!canSeeAll();
+  $("acctLabel").textContent=!ME?"Sign up / Log in":isAdmin()?"Librarian accounts":"My profile";$("homeTab").hidden=!ME;$("repTab").hidden=!ME;$("d_print").hidden=!ME;$("r_backup").hidden=!isAdmin();$("anaTab").hidden=!canSeeAll();
   const b=$("acctBanner");b.hidden=true;
   if(ME&&ME.mustChange){b.hidden=false;b.innerHTML=`The division librarian reset your password. Please <a href="#account">set a new password</a> now.`}
   else if(ME&&!isAdmin()&&ME.status==="pending"){b.hidden=false;b.innerHTML="Your registration is <b>waiting for approval</b> by the division librarian. You can add resources once you're approved."}
@@ -819,7 +839,67 @@ function profileHTML(P){
    <p class="note">${P.titles.toLocaleString()} titles · ${P.total.toLocaleString()} copies. Gold bars are the three biggest subjects; subjects in red have no books yet.</p>`}
 let lastProfile=null;
 async function loadProfile(){const id=$("d_lib").value;try{const r=await api("profile",{school:id});lastProfile={P:profileData(r.rows),name:r.name};$("profileOut").innerHTML=profileHTML(lastProfile.P)}catch(e){$("profileOut").innerHTML=`<div class="empty">${esc(e.message)}</div>`}}
-async function loadDashboard(){loadProfile();
+/* ---- division analytics: DDC classes, publishers, authors ---- */
+const DDC_NAMES={0:"000 General Works",100:"100 Philosophy & Psychology",200:"200 Religion",300:"300 Social Sciences",400:"400 Language",500:"500 Science & Mathematics",600:"600 Technology",700:"700 Arts & Recreation",800:"800 Literature",900:"900 History & Geography"};
+const CH_COLORS=["#1f3f8f","#b98a1e","#227a4c","#b3362d","#6d4bb3","#0f7d8c","#c2621a","#7a6a12","#3f6fd1","#a3346f"];
+function ddcClass(h){for(const s of [h.ddc,h.callNo]){const m=/(?:^|[^\d.])(\d{3})(?:\.\d+)?(?!\d)/.exec(String(s||""));if(m)return Math.floor(parseInt(m[1],10)/100)*100}
+  const m=/^(\d{3})/.exec(h.subject||"");return m?Math.floor(parseInt(m[1],10)/100)*100:null}
+function lev(a,b){if(a===b)return 0;const m=a.length,n=b.length;if(Math.abs(m-n)>2)return 3;let p=Array.from({length:n+1},(_,j)=>j);
+  for(let i=1;i<=m;i++){const c=[i];for(let j=1;j<=n;j++)c[j]=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1));p=c}return p[n]}
+function nameKey(s,kind){let k=String(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/&/g," and ").replace(/[^a-z0-9 ]+/g," ");
+  if(kind==="pub")k=k.replace(/\b(book ?stores?|books?|inc|incorporated|co|company|corp|corporation|ltd|limited|the|publishing|publishers?|publications?|press|house|enterprises?|phils?|philippines)\b/g," ");
+  else k=k.replace(/\bet al\b/g," ").split(/\s+/).filter(w=>w.length>1).sort().join(" ");
+  return k.replace(/\s+/g," ").trim()}
+function tidyName(s){s=String(s||"").replace(/\s+/g," ").trim();return(s===s.toUpperCase()||s===s.toLowerCase())?s.toLowerCase().replace(/\b[a-z]/g,c=>c.toUpperCase()):s}
+function groupNames(items,kind){const g=new Map();
+  items.forEach(({name,copies})=>{const key=nameKey(name,kind);if(!key)return;let x=g.get(key);if(!x)g.set(key,x={key,titles:0,copies:0,spell:{}});x.titles++;x.copies+=copies;const t=name.replace(/\s+/g," ").trim();x.spell[t]=(x.spell[t]||0)+1});
+  const list=[...g.values()].sort((a,b)=>b.titles-a.titles),kept=[];
+  list.forEach(x=>{const near=kept.find(y=>{const d=lev(x.key,y.key),n=Math.min(x.key.length,y.key.length);return(d===1&&n>=3&&x.key[0]===y.key[0])||(d===2&&n>=8)});
+    if(near){near.titles+=x.titles;near.copies+=x.copies;for(const s in x.spell)near.spell[s]=(near.spell[s]||0)+x.spell[s]}else kept.push(x)});
+  kept.forEach(x=>{const sp=Object.entries(x.spell).sort((a,b)=>b[1]-a[1]);x.name=tidyName(sp[0][0]);x.variants=sp.length});
+  return kept.sort((a,b)=>b.titles-a.titles||b.copies-a.copies||a.name.localeCompare(b.name))}
+function splitAuthors(s){return String(s||"").split(/;|\s\/\s|\|/).map(a=>a.trim()).filter(a=>a&&!/^(n\.?a\.?|none|unknown|anonymous|-+)$/i.test(a))}
+function divStats(rows){const ddc={},noDdc={titles:0,copies:0};let titles=0,copies=0,noPub=0,noAuth=0;const pubs=[],auths=[];
+  rows.forEach(h=>{const c=Number(h.copies)||1;titles++;copies+=c;const k=ddcClass(h);
+    if(k==null){noDdc.titles++;noDdc.copies+=c}else{const d=ddc[k]||(ddc[k]={titles:0,copies:0});d.titles++;d.copies+=c}
+    if(h.publisher&&h.publisher.trim())pubs.push({name:h.publisher,copies:c});else noPub++;
+    const as=splitAuthors(h.author);if(as.length)as.forEach(a=>auths.push({name:a,copies:c}));else noAuth++});
+  const classes=Object.keys(DDC_NAMES).map(Number).map(k=>({k,label:DDC_NAMES[k],titles:(ddc[k]||{}).titles||0,copies:(ddc[k]||{}).copies||0}));
+  return{titles,copies,classes,noDdc,pubs:groupNames(pubs,"pub"),auths:groupNames(auths,"auth"),noPub,noAuth}}
+let DIV_CACHE=null;const CHARTS={};
+async function ensureChartJs(){if(window.Chart)return true;try{await loadScript("https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js");return !!window.Chart}catch(e){return false}}
+const endLabels={id:"endLabels",afterDatasetsDraw(c){const ds=c.data.datasets[0];if(!ds||!ds.endText)return;const ctx=c.ctx,meta=c.getDatasetMeta(0);ctx.save();ctx.font="600 12px Inter, system-ui, sans-serif";ctx.fillStyle=ds.endColor||"#18213a";ctx.textBaseline="middle";
+  meta.data.forEach((bar,i)=>{const t=ds.endText[i];if(t)ctx.fillText(t,bar.x+6,bar.y)});ctx.restore()}};
+function hbar(id,labels,values,colors,label,tip){if(CHARTS[id])CHARTS[id].destroy();const css=getComputedStyle(document.documentElement),ink=css.getPropertyValue("--ink").trim()||"#18213a",line=css.getPropertyValue("--line").trim()||"#dde2ec";
+  CHARTS[id]=new Chart($(id),{type:"bar",data:{labels,datasets:[{label,data:values,backgroundColor:colors,borderRadius:4,maxBarThickness:26,endText:values.map((_,i)=>tip.end(i)),endColor:ink}]},plugins:[endLabels],
+    options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,layout:{padding:{right:70}},animation:{duration:500},
+      scales:{x:{beginAtZero:true,grid:{color:line},ticks:{color:ink,font:{family:"Inter",size:11}}},y:{grid:{display:false},ticks:{color:ink,font:{family:"Inter",size:12},callback(v){const s=this.getLabelForValue(v);return s.length>30?s.slice(0,29)+"…":s}}}},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>tip.tooltip(c.dataIndex)}}}}})}
+async function loadDivCharts(){const box=$("dc_kpis");
+  try{if(!DIV_CACHE||Date.now()-DIV_CACHE.at>180000){const rows=(await api("records_full",{})).rows;DIV_CACHE={at:Date.now(),S:divStats(rows)}}
+    const S=DIV_CACHE.S,classed=S.titles-S.noDdc.titles;
+    if(!S.titles){box.innerHTML=`<div class="empty">No titles encoded yet. The charts appear once libraries add resources.</div>`;["c_ddc","c_pub","c_auth"].forEach(id=>{if(CHARTS[id]){CHARTS[id].destroy();delete CHARTS[id]}});return}
+    const big=S.classes.slice().sort((a,b)=>b.titles-a.titles)[0],few=S.pubs.length?S.pubs[S.pubs.length-1].titles:0,fewList=S.pubs.filter(p=>p.titles===few);
+    box.innerHTML=kpis([[S.titles.toLocaleString(),`titles encoded (${S.copies.toLocaleString()} copies)`],[`${S.titles?Math.round(classed/S.titles*100):0}%`,`of titles have a DDC class (000–900)`],[big&&big.titles?esc(big.label):"—","biggest DDC class"],[S.pubs.length.toLocaleString(),"different publishers"],[S.auths.length.toLocaleString(),"different authors"]]);
+    const pct=c=>classed?c.titles/classed*100:0;
+    $("dc_ddcnote").innerHTML=S.noDdc.titles?`<b>${S.noDdc.titles.toLocaleString()}</b> title(s) (${Math.round(S.noDdc.titles/S.titles*100)}%) have no DDC number yet, for example fiction, easy books or records without a call number. They are not part of the percentages above.`:"Every encoded title has a DDC class.";
+    $("dc_pubfew").innerHTML=S.pubs.length>10?`<div class="fewlist"><b>Fewest titles:</b> ${fewList.length.toLocaleString()} publisher(s) have only ${few} title${few===1?"":"s"} each${fewList.length<=12?`: ${fewList.map(p=>esc(p.name)).join(", ")}`:`, for example ${fewList.slice(0,10).map(p=>esc(p.name)).join(", ")} …`}${S.noPub?`<br><b>${S.noPub.toLocaleString()}</b> title(s) have no publisher encoded.`:""}</div>`:S.noPub?`<p class="note">${S.noPub.toLocaleString()} title(s) have no publisher encoded.</p>`:"";
+    $("dc_authnote").innerHTML=S.noAuth?`${S.noAuth.toLocaleString()} title(s) have no author encoded.`:"";
+    const topP=S.pubs.slice(0,10),topA=S.auths.slice(0,10);
+    if(!(await ensureChartJs())){
+      const fb=(k,html)=>{$("c_"+k).parentNode.hidden=true;$("f_"+k).innerHTML=html};
+      fb("ddc",barChart("",S.classes.map(c=>({label:c.label,value:Math.round(pct(c)*10)/10})),"%"));
+      fb("pub",barChart("",topP.map(p=>({label:p.name,value:p.titles})),"titles"));
+      fb("auth",barChart("",topA.map(a=>({label:a.name,value:a.titles})),"titles"));return}
+    ["ddc","pub","auth"].forEach(k=>{$("c_"+k).parentNode.hidden=false;$("f_"+k).innerHTML=""});
+    hbar("c_ddc",S.classes.map(c=>c.label),S.classes.map(c=>+pct(c).toFixed(1)),CH_COLORS,"% of titles",
+      {end:i=>`${pct(S.classes[i]).toFixed(1)}%`,tooltip:i=>{const c=S.classes[i];return `${pct(c).toFixed(1)}% · ${c.titles.toLocaleString()} titles · ${c.copies.toLocaleString()} copies`}});
+    hbar("c_pub",topP.map(p=>p.name),topP.map(p=>p.titles),topP.map((_,i)=>i<3?"#b98a1e":"#1f3f8f"),"titles",
+      {end:i=>topP[i].titles.toLocaleString(),tooltip:i=>{const p=topP[i];return `${p.titles.toLocaleString()} titles · ${p.copies.toLocaleString()} copies${p.variants>1?` · ${p.variants} spellings merged`:""}`}});
+    hbar("c_auth",topA.map(a=>a.name),topA.map(a=>a.titles),topA.map((_,i)=>i<3?"#b98a1e":"#227a4c"),"titles",
+      {end:i=>topA[i].titles.toLocaleString(),tooltip:i=>{const a=topA[i];return `${a.titles.toLocaleString()} titles · ${a.copies.toLocaleString()} copies`}});
+  }catch(e){box.innerHTML=`<div class="empty">${esc(e.message)}</div>`}}
+async function loadDashboard(){loadProfile();loadDivCharts();
   try{const r=await api("dashboard");
     const hubs=schools.filter(s=>s.category==="Library Hub").length,copies=r.perSchool.reduce((n,s)=>n+s.copies,0);
     const sch=r.perSchool.filter(s=>s.category!=="Library Hub"),enroll=sch.reduce((n,s)=>n+s.enrollment,0),schCopies=sch.reduce((n,s)=>n+s.copies,0);
@@ -838,7 +918,8 @@ function reportParams(){return{type:$("r_type").value,school:$("r_school").value
 function reportTableHTML(r){return r.rows.length?`<div class="tablebox"><table><thead><tr>${r.cols.map(c=>`<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${r.rows.map(row=>`<tr>${row.map(v=>`<td${typeof v==="number"?' class="num"':""}>${esc(/^\d{4}-\d{2}-\d{2}$/.test(String(v))?fmtDate(v):v)}</td>`).join("")}</tr>`).join("")}</tbody></table></div><p class="note">${r.rows.length.toLocaleString()} row(s)</p>`:`<div class="empty"><strong>Nothing to report yet</strong>This report fills in as libraries encode their holdings and loans.</div>`}
 function reportHeadHTML(title,scope){const today=new Date().toLocaleDateString("en-PH",{year:"numeric",month:"long",day:"numeric"});
   return `<div class="reporthead"><div>${esc(REGION)}</div><div><b>${esc(DIVISION)}</b></div><h3>${esc(title)}</h3><div>${esc(scope)} · as of ${today}</div></div>`}
-async function loadReport(){const p=reportParams();$("r_word").hidden=true;const acq=p.type==="acq";$("r_fromL").hidden=!acq;$("r_toL").hidden=!acq;
+async function loadReport(){if(!ME){$("reportOut").innerHTML=`<div class="empty locked"><strong>Reports are for logged-in users</strong>Please <a href="#account">log in</a> to view and print reports.</div>`;return}
+  const p=reportParams();$("r_word").hidden=true;const acq=p.type==="acq";$("r_fromL").hidden=!acq;$("r_toL").hidden=!acq;
   $("reportOut").innerHTML=`<p class="note">Loading…</p>`;
   try{let r;
     if(p.type==="profile"){const pr=await api("profile",p);const P=profileData(pr.rows);
