@@ -1197,12 +1197,12 @@ async function loadOverview(){if(!$("ovPanel"))return;ovFillFilters();
     OV_CTX={scope,ids,perLib,noFilter,scopeName:lib?ovLibName(lib):($("ov_dist").value||"Schools Division of Agusan del Norte")+($("ov_type").value?($("ov_type").value==="hub"?" · Library Hubs":" · School libraries"):"")};
     const P0=(n,d)=>d?Math.round(n/d*100)+"%":"0%";
     const kp=(cls,ic,big,lbl,sub,id)=>`<${id?`button type="button" id="${id}"`:"div"} class="ovk ${cls}"><div class="top"><span class="ic">${OV_ICON[ic]}</span><span class="lbl">${lbl}</span></div><b>${big}</b>${sub?`<small>${sub}</small>`:""}${id?`<span class="more">Click to see the list →</span>`:""}</${id?"button":"div"}>`;
-    $("ov_kpis").innerHTML=kp("c1","badge",staff?(stLic+stInc).toLocaleString():"—","Librarians and library in-charge",staff?`${stLic} licensed librarian(s) · ${stInc} library in-charge`:"","ov_k_staff")+
+    $("ov_kpis").innerHTML=kp("c1","badge",staff?(stLic+stInc).toLocaleString():"—","Librarians and library in-charge",staff?`${stLic} licensed librarian(s) · ${stInc} library in-charge`:"")+
       kp("c3","school",sch.length.toLocaleString(),"School libraries","Registered in Project LINK","ov_k_sch")+kp("c4","hub",hubs.toLocaleString(),"Library Hubs","Registered in Project LINK","ov_k_hub")+
       kp("c5","people",learners.toLocaleString(),"Learners","Enrollment","ov_k_lrn")+
       kp("c6","book",copies.toLocaleString(),"Library collections",`Copies · ${rows.length.toLocaleString()} titles`)+
       kp("c7","flag",filT.toLocaleString(),"Filipiniana titles",`${P0(filT,rows.length)} of all titles`);
-    $("ov_k_staff").onclick=ovShowStaff;$("ov_k_sch").onclick=()=>ovShowLibs(false);$("ov_k_hub").onclick=()=>ovShowLibs(true);$("ov_k_lrn").onclick=ovShowLearners;
+    $("ov_k_sch").onclick=()=>ovShowLibs(false);$("ov_k_hub").onclick=()=>ovShowLibs(true);$("ov_k_lrn").onclick=ovShowLearners;
     const S=divStats(rows),classes=S.classes.slice();if(S.noDdc.copies)classes.push({label:"No class number yet",titles:S.noDdc.titles,copies:S.noDdc.copies,none:true});
     const PC=n=>copies?(n/copies*100).toFixed(1)+"%":"0%",CLR=["#1f3f8f","#b98a1e","#227a4c","#b3362d","#6d4bb3","#0f7d8c","#c2621a","#7a6a12","#3f6fd1","#a3346f"];
     $("ov_classnote").textContent=S.noDdc.titles?`${S.noDdc.titles.toLocaleString()} title(s) have no class number in the call number yet, so they are shown as "No class number yet".`:"";
