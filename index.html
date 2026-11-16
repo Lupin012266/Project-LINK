@@ -236,7 +236,8 @@ label.check{flex-direction:row;gap:8px;align-items:center;font-weight:500;margin
 .ovlist{max-height:420px;overflow:auto}
 .ovtop{grid-template-columns:minmax(200px,1fr) minmax(0,3fr)}
 .ovfilters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
-.ovkpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.ovkpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.realms{display:flex;flex-direction:column;gap:8px}.realm{display:flex;gap:8px;align-items:flex-start;font-size:13px;line-height:1.4}.realm i{width:12px;height:12px;border-radius:3px;flex:none;margin-top:3px}.realm .rn{color:var(--muted);font-size:12px}.realm small{display:block;color:var(--muted);font-size:12px}
 .ovk{border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;background:var(--surface);min-width:0;color:var(--ink);text-align:left;font-weight:400}
 .ovk .top{display:flex;align-items:center;gap:10px;min-height:36px}
 .ovk .ic{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;flex:none;background:var(--bg,#f3f5f9)}
@@ -1116,11 +1117,32 @@ function ovFillFilters(){const d=$("ov_dist");if(d.dataset.n==String(schools.len
   const dists=[...new Set(schools.map(s=>s.district).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
   d.innerHTML=`<option value="">All districts (${dists.length})</option>`+dists.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("");if(dists.includes(cur))d.value=cur;ovFillLibs()}
 function ovRatio(r){return r>=1?`${r.toFixed(r>=10?0:1)}:1`:r>0?`1:${(1/r).toFixed(1)}`:"—"}
-const OV_INCHARGE=16;
-async function ovShowLicensed(){openModal(`<div class="sheethead"><div><div class="eyebrow">Schools Division of Agusan del Norte</div><h3 id="sheetTitle">Licensed librarians</h3></div><button type="button" class="ghost sm" data-close>Close</button></div><div id="licBody"><p class="note">Loading…</p></div>`);
-  try{const L=await api("licensed_list"),nm=id=>id==null||id===""?"Schools Division Office (Division Office)":((schools.find(s=>String(s.id)===String(id))||{}).name||id);
-    $("licBody").innerHTML=L.length?`<table class="ovlib"><thead><tr><th>#</th><th>Name</th><th>Position</th><th>Library where assigned</th></tr></thead><tbody>${L.map((r,i)=>`<tr><td>${i+1}</td><td><b>${esc(r.name||"")}</b></td><td>${esc(r.designation||"—")}</td><td>${esc(nm(r.school_id))}</td></tr>`).join("")}</tbody></table>`:`<div class="empty">No licensed librarians marked yet.</div>`}
-  catch(e){$("licBody").innerHTML=`<div class="empty">The list needs one more setup step in Supabase (licensed_librarians). ${esc(e.message)}</div>`}}
+const OV_LIBTYPES=["School Librarian","Teacher-Librarian","Library-in-Charge / Library Designate","Library Hub Staff"];
+let OV_CTX=null;
+const ovLibName=id=>id==null||id===""?"Schools Division Office":((schools.find(s=>String(s.id)===String(id))||{}).name||id);
+function ovSheet(title,sub,body){openModal(`<div class="sheethead"><div><div class="eyebrow">${esc(sub)}</div><h3 id="sheetTitle">${esc(title)}</h3></div><button type="button" class="ghost sm" data-close>Close</button></div><div id="ovSheetB" class="tablebox">${body}</div>`)}
+async function ovShowStaff(){const c=OV_CTX;ovSheet("Librarians and library in-charge",c.scopeName,`<p class="note">Loading…</p>`);
+  try{let L=await api("licensed_list");L=L.filter(r=>(r.school_id==null||r.school_id==="")?c.noFilter:c.ids.has(String(r.school_id)));
+    L.sort((a,b)=>(b.licensed===true)-(a.licensed===true)||ovLibName(a.school_id).localeCompare(ovLibName(b.school_id))||String(a.name).localeCompare(String(b.name)));
+    const nl=L.filter(r=>r.licensed===true).length;
+    $("ovSheetB").innerHTML=L.length?`<p class="note" style="margin:0 0 8px"><b>${L.length}</b> registered: <b>${nl}</b> licensed librarian(s) and <b>${L.length-nl}</b> library in-charge.</p><table class="ovlib"><thead><tr><th>#</th><th>Name</th><th>Role</th><th>Position</th><th>Library</th></tr></thead><tbody>${L.map((r,i)=>`<tr><td>${i+1}</td><td><b>${esc(r.name||"")}</b></td><td>${r.licensed===true?`<span class="good">Licensed librarian</span>`:esc(r.user_type==="Library-in-Charge / Library Designate"?"Library in-charge / designate":r.user_type||"Library in-charge")}</td><td>${esc(r.designation||"—")}</td><td>${esc(ovLibName(r.school_id))}</td></tr>`).join("")}</tbody></table>`:`<div class="empty">No librarians or library in-charge registered here yet.</div>`}
+  catch(e){$("ovSheetB").innerHTML=`<div class="empty">The list needs the setup step in Supabase (library-staff-list.sql). ${esc(e.message)}</div>`}}
+function ovShowLibs(hub){const c=OV_CTX,list=c.scope.filter(s=>hub?s.category==="Library Hub":s.category!=="Library Hub").sort((a,b)=>a.name.localeCompare(b.name));
+  ovSheet(hub?"Library Hubs":"School libraries",c.scopeName,list.length?`<table class="ovlib"><thead><tr><th>#</th><th>Library</th><th>District</th><th class="num">Titles</th><th class="num">Copies</th></tr></thead><tbody>${list.map((s,i)=>{const L=c.perLib[s.id]||{titles:0,copies:0};return `<tr><td>${i+1}</td><td><b>${esc(s.name)}</b></td><td>${esc(s.district||"")}</td><td class="num">${L.titles.toLocaleString()}</td><td class="num">${L.copies.toLocaleString()}</td></tr>`}).join("")}</tbody></table>`:`<div class="empty">None registered here yet.</div>`)}
+function ovShowLearners(){const c=OV_CTX,list=c.scope.filter(s=>s.category!=="Library Hub").sort((a,b)=>(Number(b.enrollment)||0)-(Number(a.enrollment)||0)||a.name.localeCompare(b.name)),tot=list.reduce((n,s)=>n+(Number(s.enrollment)||0),0);
+  ovSheet("Learners per school",c.scopeName,list.length?`<table class="ovlib"><thead><tr><th>#</th><th>School</th><th>District</th><th class="num">Learners encoded</th></tr></thead><tbody>${list.map((s,i)=>`<tr><td>${i+1}</td><td><b>${esc(s.name)}</b></td><td>${esc(s.district||"")}</td><td class="num">${Number(s.enrollment)?Number(s.enrollment).toLocaleString():`<span class="poor">Not encoded</span>`}</td></tr>`).join("")}<tr><td></td><td><b>Total</b></td><td></td><td class="num"><b>${tot.toLocaleString()}</b></td></tr></tbody></table>`:`<div class="empty">No school libraries here yet.</div>`)}
+const REALMS=[{k:"kid",name:"Kid Lit",color:"#e07a3f",desc:"Children's and young adult literature: picture books, storybooks and stories for young readers."},
+  {k:"komiks",name:"Komiks",color:"#a3346f",desc:"Komiks, comics, graphic novels and zines, including local graphic narratives and Filipino illustrators."},
+  {k:"book",name:"Booktopia",color:"#1f3f8f",desc:"General trade books: local and other fiction, nonfiction, poetry, essays and literary collections."},
+  {k:"aral",name:"Aral Aklat",color:"#227a4c",desc:"Books for learning: textbooks, learner's materials, teaching guides and reference materials."}];
+const KOMIKS_RE=/\b(komiks?|comics?|graphic novels?|manga|zines?|webtoons?)\b/i,KID_RE=/\b(children'?s?|juvenile|young adults?|kids?|easy books?|picture books?|storybooks?|nursery|fairy tales?|kuwentong pambata|pambata)\b/i;
+function realmOf(h){const t=h.type||"",txt=`${h.title||""} ${h.subject||""}`,n=clsNum(h);
+  if(KOMIKS_RE.test(txt)||(n!=null&&n>=741.5&&n<741.6))return"komiks";
+  if(["Textbook","Learner's Material","Teacher's Guide","Reference","Thesis / Dissertation"].includes(t))return"aral";
+  if(t==="Storybook / Picture book"||/^(easy|picture)/i.test(String(h.subject||"").trim())||/^(fil\s+)?e\b/i.test(String(h.callNo||"").trim())||KID_RE.test(txt))return"kid";
+  const lit=t==="Novel"||LEGACY_LIT(h.subject)||(n!=null&&n>=800&&n<900);if(lit&&/^(Kindergarten|Grade \d+)$/.test(h.grade||""))return"kid";
+  if(n!=null&&n<100)return"aral";
+  return"book"}
 async function loadOverview(){if(!$("ovPanel"))return;ovFillFilters();
   try{const all=await getDivRows(),lib=$("ov_lib").value,scope=lib?schools.filter(s=>s.id===lib):ovScope(),ids=new Set(scope.map(s=>s.id)),rows=all.filter(h=>ids.has(h.schoolId));
     const sch=scope.filter(s=>s.category!=="Library Hub"),hubs=scope.length-sch.length,learners=sch.reduce((n,s)=>n+(Number(s.enrollment)||0),0);
@@ -1130,42 +1152,35 @@ async function loadOverview(){if(!$("ovPanel"))return;ovFillFilters();
     const usable=cond.Good+cond.Fair,schCopies=sch.reduce((n,s)=>n+((perLib[s.id]||{}).copies||0),0),ratio=learners?schCopies/learners:0;
     $("ov_asof").textContent="As of "+new Date().toLocaleDateString("en-PH",{year:"numeric",month:"long",day:"numeric"});
     let filT=0,filC=0,weedT=0;const cyW=new Date().getFullYear(),weedLib={};rows.forEach(h=>{if(h.filipiniana){filT++;filC+=Number(h.copies)||1}if(weedReasons(h,cyW).length){weedT++;weedLib[h.schoolId]=(weedLib[h.schoolId]||0)+1}});
-    const staff=await ovStaff(),st={lic:0,licDiv:0,inc:0},noFilter=!lib&&!$("ov_dist").value&&!$("ov_type").value;
-    if(staff)staff.forEach(r=>{const n=Number(r.n)||0,lic=r.licensed===true||r.licensed==="true";
-      if(r.school_id==null||r.school_id===""){if(lic&&noFilter){st.lic+=n;st.licDiv+=n}return}
-      if(!ids.has(String(r.school_id)))return;if(lic)st.lic+=n;else st.inc+=n});
-    const inc=noFilter?OV_INCHARGE:st.inc,P0=(n,d)=>d?Math.round(n/d*100)+"%":"0%";
-    const kp=(cls,ic,big,lbl,sub,click)=>`<${click?'button type="button" id="ov_lic"':"div"} class="ovk ${cls}"><div class="top"><span class="ic">${OV_ICON[ic]}</span><span class="lbl">${lbl}</span></div><b>${big}</b>${sub?`<small>${sub}</small>`:""}${click?`<span class="more">See who they are →</span>`:""}</${click?"button":"div"}>`;
-    $("ov_kpis").innerHTML=kp("c1","badge",staff?st.lic.toLocaleString():"—","Licensed librarians",staff?(st.licDiv?`${st.lic-st.licDiv} in schools · ${st.licDiv} at the Division Office`:"In the selected libraries"):"",true)+
-      kp("c2","teacher",inc.toLocaleString(),"Library in-charge","Teacher-librarians and library designates")+
-      kp("c3","school",sch.length.toLocaleString(),"School libraries","Registered in Project LINK")+kp("c4","hub",hubs.toLocaleString(),"Library Hubs","Registered in Project LINK")+
-      kp("c5","people",learners.toLocaleString(),"Learners","Enrollment")+
+    const staff=await ovStaff(),noFilter=!lib&&!$("ov_dist").value&&!$("ov_type").value;let stLic=0,stInc=0;
+    if(staff)staff.forEach(r=>{const n=Number(r.n)||0,lic=r.licensed===true||r.licensed==="true",div=r.school_id==null||r.school_id==="";
+      if(div?!(noFilter&&lic):!ids.has(String(r.school_id)))return;if(lic)stLic+=n;else if(OV_LIBTYPES.includes(r.user_type))stInc+=n});
+    OV_CTX={scope,ids,perLib,noFilter,scopeName:lib?ovLibName(lib):($("ov_dist").value||"Schools Division of Agusan del Norte")+($("ov_type").value?($("ov_type").value==="hub"?" · Library Hubs":" · School libraries"):"")};
+    const P0=(n,d)=>d?Math.round(n/d*100)+"%":"0%";
+    const kp=(cls,ic,big,lbl,sub,id)=>`<${id?`button type="button" id="${id}"`:"div"} class="ovk ${cls}"><div class="top"><span class="ic">${OV_ICON[ic]}</span><span class="lbl">${lbl}</span></div><b>${big}</b>${sub?`<small>${sub}</small>`:""}${id?`<span class="more">Click to see the list →</span>`:""}</${id?"button":"div"}>`;
+    $("ov_kpis").innerHTML=kp("c1","badge",staff?(stLic+stInc).toLocaleString():"—","Librarians and library in-charge",staff?`${stLic} licensed librarian(s) · ${stInc} library in-charge`:"","ov_k_staff")+
+      kp("c3","school",sch.length.toLocaleString(),"School libraries","Registered in Project LINK","ov_k_sch")+kp("c4","hub",hubs.toLocaleString(),"Library Hubs","Registered in Project LINK","ov_k_hub")+
+      kp("c5","people",learners.toLocaleString(),"Learners","Enrollment","ov_k_lrn")+
       kp("c6","book",copies.toLocaleString(),"Library collections",`Copies · ${rows.length.toLocaleString()} titles`)+
-      kp("c7","flag",filT.toLocaleString(),"Filipiniana titles",`${P0(filT,rows.length)} of all titles`)+
-      kp("c8","weed",weedT.toLocaleString(),"Suggested for weeding",`Titles · ${P0(weedT,rows.length)} of all titles`);
-    $("ov_lic").addEventListener("click",ovShowLicensed);
+      kp("c7","flag",filT.toLocaleString(),"Filipiniana titles",`${P0(filT,rows.length)} of all titles`);
+    $("ov_k_staff").onclick=ovShowStaff;$("ov_k_sch").onclick=()=>ovShowLibs(false);$("ov_k_hub").onclick=()=>ovShowLibs(true);$("ov_k_lrn").onclick=ovShowLearners;
     const S=divStats(rows),classes=S.classes.slice();if(S.noDdc.copies)classes.push({label:"No class number yet",titles:S.noDdc.titles,copies:S.noDdc.copies,none:true});
     const PC=n=>copies?(n/copies*100).toFixed(1)+"%":"0%",CLR=["#1f3f8f","#b98a1e","#227a4c","#b3362d","#6d4bb3","#0f7d8c","#c2621a","#7a6a12","#3f6fd1","#a3346f"];
     $("ov_classnote").textContent=S.noDdc.titles?`${S.noDdc.titles.toLocaleString()} title(s) have no class number in the call number yet, so they are shown as "No class number yet".`:"";
-    const WHY={0:"encyclopedias, almanacs and other general reference books",100:"philosophy, psychology and values books",200:"religion and values books",300:"social studies, education, customs and folklore",400:"dictionaries and English and Filipino language books",500:"science and mathematics books",600:"health, technology and livelihood books",700:"arts, music, physical education and sports",800:"storybooks, novels, poems, plays and other literature (fiction and picture books are classed under 800)",900:"history, geography and biographies"};
-    const ranked=S.classes.filter(c=>c.copies).sort((x,y)=>y.copies-x.copies),top=ranked[0],second=ranked[1],empty=S.classes.filter(c=>!c.copies);
-    let litFic=0,litFicC=0;rows.forEach(h=>{if(LEGACY_LIT(h.subject)){litFic++;litFicC+=Number(h.copies)||1}});
+    const RC={kid:{t:0,c:0},komiks:{t:0,c:0},book:{t:0,c:0},aral:{t:0,c:0}};rows.forEach(h=>{const r=RC[realmOf(h)];r.t++;r.c+=Number(h.copies)||1});
+    const realms=REALMS.map(r=>({...r,titles:RC[r.k].t,copies:RC[r.k].c}));
     const NONPRINT=["E-resource","Audio-visual"];let np=0,npT=0;rows.forEach(h=>{if(NONPRINT.includes(h.type)){np+=Number(h.copies)||1;npT++}});const pr=copies-np,prT=rows.length-npT;
-    const why=[];
-    if(top)why.push(`<li><b>${esc(top.label)}</b> has the most copies (${top.copies.toLocaleString()}, ${PC(top.copies)}). This class covers ${WHY[top.k]}.${top.k===800&&litFic?` ${litFic.toLocaleString()} title(s) (${litFicC.toLocaleString()} copies) are encoded as fiction, easy books or picture books.`:""}</li>`);
-    if(second)why.push(`<li><b>${esc(second.label)}</b> comes next (${second.copies.toLocaleString()}, ${PC(second.copies)}): ${WHY[second.k]}.</li>`);
-    if(empty.length)why.push(`<li><b>No copies yet</b> in ${empty.map(c=>esc(c.label)).join(", ")}. These are possible areas for future acquisition.</li>`);
-    else if(ranked.length){const low=ranked[ranked.length-1];why.push(`<li><b>${esc(low.label)}</b> has the fewest copies (${low.copies.toLocaleString()}, ${PC(low.copies)}). This is a possible area for future acquisition.</li>`)}
-    if(S.noDdc.titles)why.push(`<li>${S.noDdc.titles.toLocaleString()} title(s) have no class number yet, so they could not be placed in a class.</li>`);
-    $("ov_sum").innerHTML=`<h3 style="margin:0">What the data shows</h3>${why.length?`<ul class="ovwhy">${why.join("")}</ul>`:`<p class="note">No resources encoded yet.</p>`}<div><span class="note" style="display:block;margin-bottom:6px">Print and non-print resources (copies)</span><div class="stat2 pn"><div class="u">Print<b>${pr.toLocaleString()}</b>${PC(pr)} · ${prT.toLocaleString()} titles</div><div class="x">Non-print<b>${np.toLocaleString()}</b>${PC(np)} · ${npT.toLocaleString()} titles</div></div><p class="note" style="margin:6px 0 0">Non-print = e-resources and audio-visual materials. All other types are print.</p></div><div class="k b3"><span>Resources per learner (schools)</span><b>${learners?ovRatio(ratio):"—"}</b>${learners&&ratio?`<span>${ratio>=1?`${ratio.toFixed(1)} resources for every learner`:`1 resource for every ${(1/ratio).toFixed(1)} learners`}</span>`:""}</div><div><span class="note" style="display:block;margin-bottom:6px">Condition of the copies</span><div class="stat2"><div class="u">Usable<b>${usable.toLocaleString()}</b>${PC(usable)}</div><div class="x">Unusable<b>${cond.Poor.toLocaleString()}</b>${PC(cond.Poor)}</div></div><p class="note" style="margin:6px 0 0">Usable = Good and Fair condition. Unusable = Poor condition.</p></div>`;
+    $("ov_sum").innerHTML=`<h3 style="margin:0">The 4 Realms</h3><p class="note" style="margin:0">Copies of the collection in each realm.</p><div class="chartbox" style="height:190px"><canvas id="c_ovrealm" role="img" aria-label="Pie chart of copies in each of the 4 Realms"></canvas></div><div id="f_ovrealm"></div><div class="realms">${realms.map(r=>`<div class="realm"><i style="background:${r.color}"></i><div><b>${r.name}</b> <span class="rn">${r.copies.toLocaleString()} copies · ${PC(r.copies)} · ${r.titles.toLocaleString()} titles</span><small>${r.desc}</small></div></div>`).join("")}</div><details class="note"><summary>How each realm is identified</summary><p style="margin:6px 0 0">Komiks: title or subject has komiks, comics, graphic novel, manga or zine, or class number 741.5. Aral Aklat: type is Textbook, Learner's Material, Teacher's Guide, Reference or Thesis, or class 000. Kid Lit: type is Storybook / Picture book, call number starts with E, subject is easy or picture books, words like children or young adult, or literature marked for Kindergarten to Grade 12. Booktopia: all other books. Encode the type, grade level and subject correctly so each book lands in the right realm.</p></details><div><span class="note" style="display:block;margin-bottom:6px">Print and non-print resources (copies)</span><div class="stat2 pn"><div class="u">Print<b>${pr.toLocaleString()}</b>${PC(pr)} · ${prT.toLocaleString()} titles</div><div class="x">Non-print<b>${np.toLocaleString()}</b>${PC(np)} · ${npT.toLocaleString()} titles</div></div><p class="note" style="margin:6px 0 0">Non-print = e-resources and audio-visual materials. All other types are print.</p></div><div class="k b3"><span>Resources per learner (schools)</span><b>${learners?ovRatio(ratio):"—"}</b>${learners&&ratio?`<span>${ratio>=1?`${ratio.toFixed(1)} resources for every learner`:`1 resource for every ${(1/ratio).toFixed(1)} learners`}</span>`:""}</div><div><span class="note" style="display:block;margin-bottom:6px">Condition of the copies</span><div class="stat2"><div class="u">Usable<b>${usable.toLocaleString()}</b>${PC(usable)}</div><div class="x">Unusable<b>${cond.Poor.toLocaleString()}</b>${PC(cond.Poor)}</div></div><p class="note" style="margin:6px 0 0">Usable = Good and Fair condition. Unusable = Poor condition.</p></div>`;
     const libs=scope.map(s=>{const L=perLib[s.id]||{titles:0,copies:0};return{s,L,r:s.category!=="Library Hub"&&s.enrollment?L.copies/s.enrollment:null}}).sort((a,b)=>b.L.copies-a.L.copies||a.s.name.localeCompare(b.s.name));
     $("ov_libs").innerHTML=libs.length?`<table class="ovlib"><thead><tr><th>Library</th><th>Type</th><th class="num">Titles</th><th class="num">Copies</th><th class="num">Copies per learner</th><th class="num">Suggested for weeding</th></tr></thead><tbody>${libs.map(({s,L,r})=>`<tr><td><b>${esc(s.name)}</b><div class="sub">${esc(s.district||"")}</div></td><td>${s.category==="Library Hub"?"Library Hub":"School library"}</td><td class="num">${L.titles.toLocaleString()}</td><td class="num">${L.copies.toLocaleString()}</td><td class="num">${r==null?"—":`<span class="${r<1?"poor":"good"}">${r.toFixed(2)}</span>`}</td><td class="num">${weedLib[s.id]?`<span class="poor">${weedLib[s.id].toLocaleString()}</span>`:"0"}</td></tr>`).join("")}</tbody></table><p class="note">Suggested for weeding follows the CREW / MUSTIE guidelines. To see the list of titles, choose the library under Collection health below.</p>`:`<div class="empty">No libraries match these filters.</div>`;
     const topP=S.pubs.slice(0,10),topA=S.auths.slice(0,10);
     if(!(await ensureChartJs())){$("c_ovclass").parentNode.hidden=true;$("f_ovclass").innerHTML=barChart("",classes.map(x=>({label:x.label,value:x.copies})),"copies");
       $("c_ovpub").parentNode.hidden=true;$("f_ovpub").innerHTML=barChart("",topP.map(p=>({label:p.name,value:p.titles})),"titles");
-      $("c_ovauth").parentNode.hidden=true;$("f_ovauth").innerHTML=barChart("",topA.map(a=>({label:a.name,value:a.titles})),"titles");return}
+      $("c_ovauth").parentNode.hidden=true;$("f_ovauth").innerHTML=barChart("",topA.map(a=>({label:a.name,value:a.titles})),"titles");$("c_ovrealm").parentNode.hidden=true;$("f_ovrealm").innerHTML=barChart("",realms.map(r=>({label:r.name,value:r.copies})),"copies");return}
     ["ovclass","ovpub","ovauth"].forEach(k=>{$("c_"+k).parentNode.hidden=false;$("f_"+k).innerHTML=""});
     hbar("c_ovclass",classes.map(c=>c.label),classes.map(c=>c.copies),classes.map((c,i)=>c.none?"#a7afbd":CLR[i%CLR.length]),"copies",{end:i=>`${classes[i].copies.toLocaleString()} · ${PC(classes[i].copies)}`,tooltip:i=>`${classes[i].copies.toLocaleString()} copies · ${classes[i].titles.toLocaleString()} titles`});
+    if(CHARTS.c_ovrealm){CHARTS.c_ovrealm.destroy();delete CHARTS.c_ovrealm}
+    if(copies)CHARTS.c_ovrealm=new Chart($("c_ovrealm"),{type:"pie",data:{labels:realms.map(r=>r.name),datasets:[{data:realms.map(r=>r.copies),backgroundColor:realms.map(r=>r.color),borderColor:"#fff",borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.label}: ${c.parsed.toLocaleString()} copies (${PC(c.parsed)})`}}}}});
     if(topP.length)hbar("c_ovpub",topP.map(p=>p.name),topP.map(p=>p.titles),topP.map((_,i)=>i<3?"#b98a1e":"#1f3f8f"),"titles",{end:i=>topP[i].titles.toLocaleString(),tooltip:i=>`${topP[i].titles.toLocaleString()} titles · ${topP[i].copies.toLocaleString()} copies`});else{if(CHARTS.c_ovpub){CHARTS.c_ovpub.destroy();delete CHARTS.c_ovpub}$("f_ovpub").innerHTML=`<p class="note">No publishers encoded yet.</p>`}
     if(topA.length)hbar("c_ovauth",topA.map(a=>a.name),topA.map(a=>a.titles),topA.map((_,i)=>i<3?"#b98a1e":"#227a4c"),"titles",{end:i=>topA[i].titles.toLocaleString(),tooltip:i=>`${topA[i].titles.toLocaleString()} titles · ${topA[i].copies.toLocaleString()} copies`});else{if(CHARTS.c_ovauth){CHARTS.c_ovauth.destroy();delete CHARTS.c_ovauth}$("f_ovauth").innerHTML=`<p class="note">No authors encoded yet.</p>`}
   }catch(e){$("ov_kpis").innerHTML=`<div class="empty">${esc(e.message)}</div>`}}
@@ -1888,7 +1903,7 @@ async function api(action,data){data=data||{};
     if(ins.length)chk(await sb.from("holdings").insert(ins));return{added:ins.length,skipped}}
   case "dashboard":return chk(await sb.rpc("dashboard_stats"));
   case "staff_stats":return chk(await sb.rpc("staff_stats"))||[];
-  case "licensed_list":return chk(await sb.rpc("licensed_librarians"))||[];
+  case "licensed_list":return chk(await sb.rpc("library_staff"))||[];
   case "analytics":{needLogin();return chk(await sb.rpc("site_analytics",{p_days:Math.max(1,Math.min(3650,Number(data.days)||30))}))}
   case "profile":{const rows=chk(await sb.rpc("subject_profile",{p_school:data.school||"",p_cat:data.cat||""}))||[];return{rows,name:scopeName(data)}}
   case "report":return await buildReportData(data);
