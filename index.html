@@ -1766,6 +1766,7 @@ const S=(v,n=500)=>String(v??"").trim().slice(0,n);
 const D=v=>/^\d{4}-\d{2}-\d{2}$/.test(String(v||"").trim())?String(v).trim():null;
 function fullName(f,m,l,x){const mi=m?m.trim()[0]+".":"";return [f,mi,l,x].map(s=>String(s||"").trim()).filter(Boolean).join(" ")}
 function chk(r){if(r&&r.error){const m=r.error.message||String(r.error);
+  if(/jwt expired/i.test(m)&&sb&&!window.__jwtFix){window.__jwtFix=1;try{Object.keys(localStorage).filter(k=>/^sb-.*-auth-token$/.test(k)).forEach(k=>localStorage.removeItem(k))}catch(_){}setTimeout(()=>location.reload(),300);throw new Error("Your login expired. Reloading the page…")}
   if(/row-level security|permission denied/i.test(m))throw new Error("You don't have permission to do this. Ask the division librarian.");
   if(/duplicate key.*accession/i.test(m))throw new Error("This accession no. already exists in this library.");
   if(/duplicate key.*username/i.test(m))throw new Error("This username is already taken. Please choose another.");
@@ -2002,8 +2003,14 @@ async function buildReportData(p){const type=p.type||"holdings";let title="",col
 /* ===================== start ===================== */
 (async()=>{
   if(sb)sb.auth.onAuthStateChange((ev)=>{if(ev==="PASSWORD_RECOVERY"){RECOVERY=true;setTimeout(async()=>{try{const r=await api("me");ME=r.me;schools=r.schools;applyRole()}catch(e){}location.hash="account";route();toast("Type your new password.")},0)}});
-  try{const r=await api("me");ME=r.me;schools=r.schools;applyRole();route()}
-  catch(e){$("roleLine").textContent="Not connected";$("catBox").innerHTML=`<div class="empty"><strong>Can't open the catalog</strong>${esc(e.message)}</div>`}})();
+  const start=async()=>{const r=await api("me");ME=r.me;schools=r.schools;applyRole();route()};
+  try{await start()}
+  catch(e){
+    if(sb&&/jwt|token.*expired|invalid.*token/i.test(e.message||"")){
+      try{const {error}=await sb.auth.refreshSession();if(error)throw error;await start();return}catch(_){}
+      try{await sb.auth.signOut({scope:"local"})}catch(_){}try{Object.keys(localStorage).filter(k=>/^sb-.*-auth-token$/.test(k)).forEach(k=>localStorage.removeItem(k))}catch(_){}
+      try{await start();toast("Your login expired. Please log in again.");return}catch(e2){e=e2}}
+    $("roleLine").textContent="Not connected";$("catBox").innerHTML=`<div class="empty"><strong>Can't open the catalog</strong>${esc(e.message)}</div>`}})();
 </script>
 </body>
 </html>
