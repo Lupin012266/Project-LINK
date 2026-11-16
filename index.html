@@ -211,6 +211,38 @@ label.check{flex-direction:row;gap:8px;align-items:center;font-weight:500;margin
 .fewlist{font-size:13px;line-height:1.55;border-left:3px solid var(--bad);padding:4px 10px;margin-top:6px}
 .locked{text-align:center;padding:28px 16px}
 @media (max-width:800px){.chartgrid{grid-template-columns:minmax(0,1fr)}}
+/* ---- holdings overview (dashboard look) ---- */
+.ov{padding:0;overflow:hidden}
+.ovhead{background:linear-gradient(90deg,#1f3f8f,#2c5fb3);color:#fff;padding:16px 20px;display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.ovhead small{display:block;font-weight:700;letter-spacing:.5px;opacity:.85}.ovhead h2{margin:0;color:#fff;font-size:28px}.ovhead .asof{font-size:13px;opacity:.9}
+.ovbody{padding:16px;display:flex;flex-direction:column;gap:16px}
+.ovtop{display:grid;grid-template-columns:minmax(200px,1fr) minmax(0,1.4fr) minmax(0,1.4fr);gap:16px}
+.ovfilters{display:flex;flex-direction:column;gap:10px}.ovfilters label{font-size:12px}
+.ovtile{border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;background:var(--surface)}
+.ovtile svg{width:34px;height:34px;color:var(--accent)}.ovtile .lbl{font-size:13px;color:var(--muted)}
+.ovtile .big{font-family:var(--display);font-size:38px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums}
+.ovsplit{display:flex;gap:28px;justify-content:center;margin-top:4px}.ovsplit div{display:flex;flex-direction:column;font-size:12px;color:var(--muted)}.ovsplit b{font-size:18px;color:var(--ink);font-variant-numeric:tabular-nums}
+.ovmain{display:grid;grid-template-columns:minmax(0,2.3fr) minmax(240px,1fr);gap:16px;border:1px solid var(--line);border-radius:10px;padding:16px}
+.ovmain h3,.ovcard h3{margin:0 0 6px;font-size:17px}
+.ovsum{border-left:1px solid var(--line);padding-left:16px;display:flex;flex-direction:column;gap:10px}
+.ovsum .k{border-left:3px solid var(--ok);padding:2px 10px}.ovsum .k span{display:block;font-size:12px;color:var(--muted)}.ovsum .k b{font-family:var(--display);font-size:26px;font-variant-numeric:tabular-nums}
+.ovsum .k.b2{border-color:#2c5fb3}.ovsum .k.b3{border-color:var(--gold)}
+.ovbottom{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.5fr);gap:16px}
+.ovcard{border:1px solid var(--line);border-radius:10px;padding:14px;min-width:0}
+.ovcard table{width:100%;border-collapse:collapse;font-size:13px}.ovcard th,.ovcard td{padding:5px 6px;border-bottom:1px solid var(--line);text-align:left}.ovcard td.num,.ovcard th.num{text-align:right;font-variant-numeric:tabular-nums}
+.ovstat{display:grid;grid-template-columns:1fr 1fr;border-radius:8px;overflow:hidden;border:1px solid var(--line);margin-bottom:8px}
+.ovstat div{padding:8px;text-align:center;font-weight:700;font-size:13px}.ovstat .u{background:#e3f4ea;color:#1b5e3a}.ovstat .x{background:#fbe4e1;color:#8e2a22}
+.ovstat b{display:block;font-family:var(--display);font-size:24px}
+.ovlist{max-height:300px;overflow:auto}
+.ovtop{grid-template-columns:minmax(200px,1fr) minmax(0,3fr)}
+.ovkpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.ovk.c7 svg{color:#1f3f8f}.ovk.c8 svg{color:#a4161a}
+.ovk{border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;gap:12px;align-items:center;background:var(--surface);min-width:0}
+.ovk svg{width:30px;height:30px;flex:none;color:var(--accent)}.ovk.c2 svg{color:#227a4c}.ovk.c3 svg{color:#b98a1e}.ovk.c4 svg{color:#0f7d8c}.ovk.c5 svg{color:#6d4bb3}.ovk.c6 svg{color:#b3362d}
+.ovk b{display:block;font-family:var(--display);font-size:28px;line-height:1.1;font-variant-numeric:tabular-nums}.ovk span{display:block;font-size:12.5px;color:var(--muted)}.ovk small{display:block;font-size:11.5px;color:var(--muted)}
+.ovtwo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:900px){.ovkpis{grid-template-columns:repeat(2,minmax(0,1fr))}.ovtwo{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:900px){.ovtop,.ovmain,.ovbottom{grid-template-columns:minmax(0,1fr)}.ovsum{border-left:none;padding-left:0;border-top:1px solid var(--line);padding-top:12px}}
+
 @media (max-width:700px){.charts{grid-template-columns:1fr}.chart .prow{grid-template-columns:1fr 70px}.chart .ptrack{grid-column:1/-1;order:3}}
 #illOut > .stack > h3{color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.35)}
 header.top .who{max-width:min(100%,560px)}header.top .role{justify-content:flex-end;text-align:right}
@@ -365,6 +397,33 @@ header.top .who{max-width:min(100%,560px)}header.top .role{justify-content:flex-
 
   <!-- DASHBOARD -->
   <section id="v-dashboard" class="stack" hidden>
+    <div class="panel ov" id="ovPanel">
+      <div class="ovhead"><div><small>Schools Division of Agusan del Norte</small><h2>Library Holdings Dashboard</h2></div><span class="asof" id="ov_asof"></span></div>
+      <div class="ovbody">
+        <div class="ovtop">
+          <div class="ovfilters">
+            <label>District<select id="ov_dist"></select></label>
+            <label>Library type<select id="ov_type"><option value="">All libraries</option><option value="school">School libraries</option><option value="hub">Library Hubs</option></select></label>
+            <label>Library<select id="ov_lib"></select></label>
+          </div>
+          <div class="ovkpis" id="ov_kpis"><p class="note">Loading…</p></div>
+        </div>
+        <div class="ovmain">
+          <div style="min-width:0"><h3>Learners and Library Resources</h3><p class="note" style="margin:0 0 8px">Copies of library resources by type of resource.</p>
+            <div class="chartbox" style="height:340px"><canvas id="c_ovtype" role="img" aria-label="Bar chart of copies by type of library resource"></canvas></div><div id="f_ovtype"></div></div>
+          <div class="ovsum" id="ov_sum"></div>
+        </div>
+        <div class="ovtwo">
+          <div class="ovcard"><h3>Top 10 publishers</h3><p class="note" style="margin:0 0 6px">Publishers with the most titles. Spelling variations are counted together.</p><div class="chartbox" style="height:340px"><canvas id="c_ovpub" role="img" aria-label="Bar chart of the ten publishers with the most titles"></canvas></div><div id="f_ovpub"></div></div>
+          <div class="ovcard"><h3>Top 10 authors</h3><p class="note" style="margin:0 0 6px">Authors with the most titles.</p><div class="chartbox" style="height:340px"><canvas id="c_ovauth" role="img" aria-label="Bar chart of the ten authors with the most titles"></canvas></div><div id="f_ovauth"></div></div>
+        </div>
+        <div class="ovbottom">
+          <div class="ovcard"><h3>Resources by type</h3><div id="ov_types"></div></div>
+          <div class="ovcard"><h3>Resource status</h3><div id="ov_status"></div></div>
+          <div class="ovcard"><h3>Libraries</h3><div class="ovlist" id="ov_libs"></div></div>
+        </div>
+      </div>
+    </div>
     <div class="stats" id="stats"></div>
     <div class="panel stack" id="divCharts">
       <div><h2>Division collection analytics</h2><p class="note" style="margin:4px 0 0">All libraries in the Schools Division of Agusan del Norte, based on every title encoded in Project LINK.</p></div>
@@ -1048,7 +1107,73 @@ async function loadDivCharts(){const box=$("dc_kpis");
     hbar("c_auth",topA.map(a=>a.name),topA.map(a=>a.titles),topA.map((_,i)=>i<3?"#b98a1e":"#227a4c"),"titles",
       {end:i=>topA[i].titles.toLocaleString(),tooltip:i=>{const a=topA[i];return `${a.titles.toLocaleString()} titles · ${a.copies.toLocaleString()} copies`}});
   }catch(e){box.innerHTML=`<div class="empty">${esc(e.message)}</div>`}}
-async function loadDashboard(){loadProfile();loadDivCharts();if(!$("hl_lib").options.length){$("hl_lib").innerHTML=$("d_lib").innerHTML;$("hl_lib").value=$("d_lib").value}loadHealth();
+
+/* ---- holdings overview (DepEd-style dashboard) ---- */
+const OV_COLORS=["#1f3f8f","#b98a1e","#227a4c","#b3362d","#6d4bb3","#0f7d8c","#c2621a","#7a6a12","#3f6fd1","#a3346f","#5b6b7f","#2e9e7a"];
+const OV_ICON={people:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="7" r="3.5"/><path d="M2.5 21v-1.5A5.5 5.5 0 0 1 8 14h2a5.5 5.5 0 0 1 5.5 5.5V21"/><circle cx="17" cy="8" r="2.5"/><path d="M17.5 14a4.5 4.5 0 0 1 4 4.5V21"/></svg>`,
+  book:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 6.5C10 5 6.5 4.5 3 5v13.5c3.5-.5 7 0 9 1.5 2-1.5 5.5-2 9-1.5V5c-3.5-.5-7 0-9 1.5z"/><path d="M12 6.5V20"/></svg>`};
+Object.assign(OV_ICON,{badge:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="5"/><path d="M8.5 12.5 7 22l5-3 5 3-1.5-9.5"/></svg>`,
+  teacher:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="6" r="3"/><path d="M3 21v-3a5 5 0 0 1 10 0v3"/><path d="M14 4h7v9h-7"/><path d="M14 13l3 3"/></svg>`,
+  school:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"/><path d="M5 21V10l7-5 7 5v11"/><path d="M10 21v-5h4v5"/></svg>`,
+  hub:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="6" rx="1"/><rect x="3" y="14" width="18" height="6" rx="1"/><path d="M7 7h2M7 17h2"/></svg>`});
+OV_ICON.weed=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1 14h10l1-14"/><path d="M10 10v6M14 10v6"/></svg>`;
+OV_ICON.flag=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/></svg>`;
+let OV_STAFF=null,OV_STAFF_AT=0;
+async function ovStaff(){if(OV_STAFF&&Date.now()-OV_STAFF_AT<180000)return OV_STAFF;try{OV_STAFF=await api("staff_stats");OV_STAFF_AT=Date.now()}catch(e){OV_STAFF=null}return OV_STAFF}
+function ovScope(){const di=$("ov_dist").value,ty=$("ov_type").value;return schools.filter(s=>(!di||s.district===di)&&(!ty||(ty==="hub"?s.category==="Library Hub":s.category!=="Library Hub")))}
+function ovFillLibs(){const sel=$("ov_lib"),cur=sel.value,list=ovScope().slice().sort((a,b)=>a.name.localeCompare(b.name));
+  sel.innerHTML=`<option value="">All libraries (${list.length})</option>`+list.map(s=>`<option value="${esc(s.id)}">${esc(s.name)}</option>`).join("");if(list.some(s=>s.id===cur))sel.value=cur}
+function ovFillFilters(){const d=$("ov_dist");if(d.dataset.n==String(schools.length))return;d.dataset.n=schools.length;const cur=d.value;
+  const dists=[...new Set(schools.map(s=>s.district).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  d.innerHTML=`<option value="">All districts (${dists.length})</option>`+dists.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("");if(dists.includes(cur))d.value=cur;ovFillLibs()}
+function ovRatio(r){return r>=1?`${r.toFixed(r>=10?0:1)}:1`:r>0?`1:${(1/r).toFixed(1)}`:"—"}
+async function loadOverview(){if(!$("ovPanel"))return;ovFillFilters();
+  try{const all=await getDivRows(),lib=$("ov_lib").value,scope=lib?schools.filter(s=>s.id===lib):ovScope(),ids=new Set(scope.map(s=>s.id)),rows=all.filter(h=>ids.has(h.schoolId));
+    const sch=scope.filter(s=>s.category!=="Library Hub"),hubs=scope.length-sch.length,learners=sch.reduce((n,s)=>n+(Number(s.enrollment)||0),0);
+    const cond={Good:0,Fair:0,Poor:0},byType={},perLib={};let copies=0;
+    rows.forEach(h=>{const c=Number(h.copies)||1;copies+=c;cond[h.condition==="Poor"?"Poor":h.condition==="Fair"?"Fair":"Good"]+=c;
+      const t=TYPES.includes(h.type)?h.type:"Other",x=byType[t]||(byType[t]={titles:0,copies:0});x.titles++;x.copies+=c;
+      const L=perLib[h.schoolId]||(perLib[h.schoolId]={titles:0,copies:0});L.titles++;L.copies+=c});
+    const usable=cond.Good+cond.Fair,schCopies=sch.reduce((n,s)=>n+((perLib[s.id]||{}).copies||0),0),ratio=learners?schCopies/learners:0;
+    $("ov_asof").textContent="As of "+new Date().toLocaleDateString("en-PH",{year:"numeric",month:"long",day:"numeric"});
+    let filT=0,filC=0,weedT=0;const cyW=new Date().getFullYear(),weedLib={};rows.forEach(h=>{if(h.filipiniana){filT++;filC+=Number(h.copies)||1}if(weedReasons(h,cyW).length){weedT++;weedLib[h.schoolId]=(weedLib[h.schoolId]||0)+1}});
+    const staff=await ovStaff(),st={lic:0,licDiv:0,inc:0},noFilter=!lib&&!$("ov_dist").value&&!$("ov_type").value;
+    if(staff)staff.forEach(r=>{const n=Number(r.n)||0,lic=r.licensed===true||r.licensed==="true";
+      if(r.school_id==null||r.school_id===""){if(lic&&noFilter){st.lic+=n;st.licDiv+=n}return}
+      if(!ids.has(String(r.school_id)))return;if(lic)st.lic+=n;else st.inc+=n});
+    const kp=(cls,ic,big,lbl,sub)=>`<div class="ovk ${cls}">${OV_ICON[ic]}<div><b>${big}</b><span>${lbl}</span>${sub?`<small>${sub}</small>`:""}</div></div>`,dash=v=>staff?v.toLocaleString():"—";
+    $("ov_kpis").innerHTML=kp("c1","badge",dash(st.lic),"Licensed librarians",staff?(st.licDiv?`${(st.lic-st.licDiv).toLocaleString()} in schools · ${st.licDiv.toLocaleString()} at the Division Office`:""):"Needs the staff_stats setup in Supabase")+
+      kp("c2","teacher",dash(st.inc),"Library in-charge and teacher-librarians",staff?"Approved Project LINK users who are not licensed":"")+
+      kp("c3","school",sch.length.toLocaleString(),"School libraries","")+kp("c4","hub",hubs.toLocaleString(),"Library Hubs","")+
+      kp("c5","people",learners.toLocaleString(),"Learners","Enrollment of the school libraries")+
+      kp("c6","book",copies.toLocaleString(),"Library collections (copies)",`${rows.length.toLocaleString()} titles · ${usable.toLocaleString()} usable · ${cond.Poor.toLocaleString()} unusable`)+
+      kp("c7","flag",filT.toLocaleString(),"Filipiniana titles",`${rows.length?Math.round(filT/rows.length*100):0}% of titles · ${filC.toLocaleString()} copies`)+
+      kp("c8","weed",weedT.toLocaleString(),"Titles suggested for weeding",`${rows.length?Math.round(weedT/rows.length*100):0}% of titles · see Libraries below`);
+    const types=TYPES.map((t,i)=>({t,color:OV_COLORS[i%OV_COLORS.length],titles:(byType[t]||{}).titles||0,copies:(byType[t]||{}).copies||0}));
+    const used=types.filter(x=>x.copies);
+    $("ov_sum").innerHTML=`<div><h3 style="margin:0">Summary</h3></div><div class="k"><span>Total library resources</span><b>${copies.toLocaleString()}</b></div><div class="k b2"><span>Total learners</span><b>${learners.toLocaleString()}</b></div><div class="k b3"><span>Resources per learner (schools)</span><b>${learners?ovRatio(ratio):"—"}</b>${learners&&ratio?`<span>${ratio>=1?`${ratio.toFixed(1)} resources for every learner`:`1 resource for every ${(1/ratio).toFixed(1)} learners`}</span>`:""}</div><div class="chartbox" style="height:200px;min-height:160px"><canvas id="c_ovpie" role="img" aria-label="Doughnut chart of copies by type of resource"></canvas></div><div id="f_ovpie"></div>`;
+    $("ov_types").innerHTML=used.length?`<table><thead><tr><th>Type</th><th class="num">Titles</th><th class="num">Copies</th><th class="num">Per learner</th></tr></thead><tbody>${used.sort((a,b)=>b.copies-a.copies).map(x=>`<tr><td><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${x.color};margin-right:6px"></span>${esc(x.t)}</td><td class="num">${x.titles.toLocaleString()}</td><td class="num">${x.copies.toLocaleString()}</td><td class="num">${learners?(x.copies/learners).toFixed(2):"—"}</td></tr>`).join("")}</tbody></table>`:`<div class="empty">No resources encoded yet.</div>`;
+    const P=n=>copies?Math.round(n/copies*100)+"%":"0%";
+    $("ov_status").innerHTML=`<div class="ovstat"><div class="u">Usable<b>${usable.toLocaleString()}</b>${P(usable)}</div><div class="x">Unusable<b>${cond.Poor.toLocaleString()}</b>${P(cond.Poor)}</div></div><table><thead><tr><th>Condition</th><th class="num">Copies</th><th class="num">Share</th></tr></thead><tbody><tr><td>${condPill("Good")}</td><td class="num">${cond.Good.toLocaleString()}</td><td class="num">${P(cond.Good)}</td></tr><tr><td>${condPill("Fair")}</td><td class="num">${cond.Fair.toLocaleString()}</td><td class="num">${P(cond.Fair)}</td></tr><tr><td>${condPill("Poor")}</td><td class="num">${cond.Poor.toLocaleString()}</td><td class="num">${P(cond.Poor)}</td></tr></tbody></table><p class="note">Usable = Good and Fair condition. Unusable = Poor condition.</p>`;
+    const libs=scope.map(s=>{const L=perLib[s.id]||{titles:0,copies:0};return{s,L,r:s.category!=="Library Hub"&&s.enrollment?L.copies/s.enrollment:null}}).sort((a,b)=>b.L.copies-a.L.copies||a.s.name.localeCompare(b.s.name));
+    $("ov_libs").innerHTML=libs.length?`<table><thead><tr><th>Library</th><th class="num">Copies</th><th class="num">Per learner</th><th class="num">For weeding</th></tr></thead><tbody>${libs.map(({s,L,r})=>`<tr><td>${esc(s.name)}<div class="sub">${esc(s.district||"")}${s.category==="Library Hub"?" · Library Hub":""}</div></td><td class="num">${L.copies.toLocaleString()}</td><td class="num">${r==null?"—":`<span class="${r<1?"poor":"good"}">${r.toFixed(2)}</span>`}</td><td class="num">${weedLib[s.id]?`<span class="poor">${weedLib[s.id].toLocaleString()}</span>`:"0"}</td></tr>`).join("")}</tbody></table><p class="note">For weeding = titles suggested for weeding by the CREW / MUSTIE guidelines. Choose a library in Collection health below to see the list.</p>`:`<div class="empty">No libraries match these filters.</div>`;
+    const SS=divStats(rows),topP=SS.pubs.slice(0,10),topA=SS.auths.slice(0,10);
+    if(!(await ensureChartJs())){$("c_ovtype").parentNode.hidden=true;$("f_ovtype").innerHTML=barChart("",used.map(x=>({label:x.t,value:x.copies})),"copies");$("c_ovpie").parentNode.hidden=true;
+      $("c_ovpub").parentNode.hidden=true;$("f_ovpub").innerHTML=barChart("",topP.map(p=>({label:p.name,value:p.titles})),"titles");
+      $("c_ovauth").parentNode.hidden=true;$("f_ovauth").innerHTML=barChart("",topA.map(a=>({label:a.name,value:a.titles})),"titles");return}
+    ["ovpub","ovauth"].forEach(k=>{$("c_"+k).parentNode.hidden=false;$("f_"+k).innerHTML=""});
+    if(topP.length)hbar("c_ovpub",topP.map(p=>p.name),topP.map(p=>p.titles),topP.map((_,i)=>i<3?"#b98a1e":"#1f3f8f"),"titles",{end:i=>topP[i].titles.toLocaleString(),tooltip:i=>`${topP[i].titles.toLocaleString()} titles · ${topP[i].copies.toLocaleString()} copies`});else{if(CHARTS.c_ovpub){CHARTS.c_ovpub.destroy();delete CHARTS.c_ovpub}$("f_ovpub").innerHTML=`<p class="note">No publishers encoded yet.</p>`}
+    if(topA.length)hbar("c_ovauth",topA.map(a=>a.name),topA.map(a=>a.titles),topA.map((_,i)=>i<3?"#b98a1e":"#227a4c"),"titles",{end:i=>topA[i].titles.toLocaleString(),tooltip:i=>`${topA[i].titles.toLocaleString()} titles · ${topA[i].copies.toLocaleString()} copies`});else{if(CHARTS.c_ovauth){CHARTS.c_ovauth.destroy();delete CHARTS.c_ovauth}$("f_ovauth").innerHTML=`<p class="note">No authors encoded yet.</p>`}
+    $("c_ovtype").parentNode.hidden=false;$("f_ovtype").innerHTML="";
+    const css=getComputedStyle(document.documentElement),ink=css.getPropertyValue("--ink").trim()||"#18213a",line=css.getPropertyValue("--line").trim()||"#dde2ec";
+    ["c_ovtype","c_ovpie"].forEach(k=>{if(CHARTS[k]){CHARTS[k].destroy();delete CHARTS[k]}});
+    CHARTS.c_ovtype=new Chart($("c_ovtype"),{type:"bar",data:{labels:types.map(x=>x.t),datasets:[{label:"Copies",data:types.map(x=>x.copies),backgroundColor:types.map(x=>x.color),borderRadius:4,maxBarThickness:46}]},
+      options:{responsive:true,maintainAspectRatio:false,animation:{duration:500},scales:{x:{grid:{display:false},ticks:{color:ink,font:{size:11},maxRotation:45,minRotation:0,autoSkip:false,callback(v){const s=this.getLabelForValue(v);return s.length>14?s.split(" / ")[0].slice(0,14):s}}},y:{beginAtZero:true,grid:{color:line},ticks:{color:ink,precision:0}}},
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>{const x=types[c.dataIndex];return `${x.copies.toLocaleString()} copies · ${x.titles.toLocaleString()} titles`}}}}}});
+    if(used.length)CHARTS.c_ovpie=new Chart($("c_ovpie"),{type:"doughnut",data:{labels:used.map(x=>x.t),datasets:[{data:used.map(x=>x.copies),backgroundColor:used.map(x=>x.color),borderWidth:1}]},
+      options:{responsive:true,maintainAspectRatio:false,cutout:"55%",plugins:{legend:{position:"bottom",labels:{color:ink,boxWidth:10,font:{size:10}}},tooltip:{callbacks:{label:c=>`${c.label}: ${c.parsed.toLocaleString()} copies (${P(c.parsed)})`}}}}});
+  }catch(e){$("ov_kpis").innerHTML=`<div class="empty">${esc(e.message)}</div>`}}
+async function loadDashboard(){loadOverview();loadProfile();loadDivCharts();if(!$("hl_lib").options.length){$("hl_lib").innerHTML=$("d_lib").innerHTML;$("hl_lib").value=$("d_lib").value}loadHealth();
   try{const r=await api("dashboard");
     const hubs=schools.filter(s=>s.category==="Library Hub").length,copies=r.perSchool.reduce((n,s)=>n+s.copies,0);
     const sch=r.perSchool.filter(s=>s.category!=="Library Hub"),enroll=sch.reduce((n,s)=>n+s.enrollment,0),schCopies=sch.reduce((n,s)=>n+s.copies,0);
@@ -1622,7 +1747,7 @@ $("q").addEventListener("input",searchSoon);
 ["fCat","fSchool","fSubject","fGrade"].forEach(id=>$(id).addEventListener("change",()=>{page=0;loadCatalog()}));
 ["r_type","r_cat","r_school","r_from","r_to"].forEach(id=>$(id).addEventListener("change",loadReport));
 $("illLib").addEventListener("change",loadLoans);
-$("d_lib").addEventListener("change",loadProfile);$("hl_lib").addEventListener("change",loadHealth);
+$("d_lib").addEventListener("change",loadProfile);$("hl_lib").addEventListener("change",loadHealth);$("ov_dist").addEventListener("change",()=>{ovFillLibs();loadOverview()});$("ov_type").addEventListener("change",()=>{ovFillLibs();loadOverview()});$("ov_lib").addEventListener("change",loadOverview);
 $("myLib").addEventListener("change",()=>{const v=$("myLib").value;if(v)store("link-school",v);$("illLib").value=v;if(!editing)$("h_school").value=v;route()});
 $("d_print").onclick=()=>{if(!lastProfile){toast("Wait for the chart to load.");return}printPage("Collection Profile",reportHeadHTML("Collection Profile by Subject",lastProfile.name)+profileHTML(lastProfile.P)+SIGN)};
 $("r_print").onclick=printReport;$("r_backup").onclick=downloadBackup;$("r_word").onclick=downloadLpWord;$("r_dl").onclick=downloadCSV;$("r_marc").onclick=downloadMarc;
@@ -1778,6 +1903,7 @@ async function api(action,data){data=data||{};
       ins.push({school_id:sid,accession_no:acc,call_no:S(r.callNo,80),title,author:S(r.author,300),pub_year:S(r.year,10),subject:SUBJ().includes(r.subject)?r.subject:(legacyRec(r).subject||"000 General Works"),grade:S(r.grade,40),rtype:TYPES.includes(r.type)?r.type:"Book",...(r.filipiniana||isFilipiniana(r)?{filipiniana:true}:{}),copies,cond:["Good","Fair","Poor"].includes(r.condition)?r.condition:"Good",fund:S(r.fund,80),date_received:D(r.dateReceived),dr_no:S(r.drNo,80),publisher:S(r.publisher,200),isbn:S(r.isbn,40),lang:"English",barcodes:makeBarcodes(sid,acc,copies)})});
     if(ins.length)chk(await sb.from("holdings").insert(ins));return{added:ins.length,skipped}}
   case "dashboard":return chk(await sb.rpc("dashboard_stats"));
+  case "staff_stats":return chk(await sb.rpc("staff_stats"))||[];
   case "analytics":{needLogin();return chk(await sb.rpc("site_analytics",{p_days:Math.max(1,Math.min(3650,Number(data.days)||30))}))}
   case "profile":{const rows=chk(await sb.rpc("subject_profile",{p_school:data.school||"",p_cat:data.cat||""}))||[];return{rows,name:scopeName(data)}}
   case "report":return await buildReportData(data);
