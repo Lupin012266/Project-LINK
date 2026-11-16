@@ -253,6 +253,9 @@ button.ovk .more{font-size:12px;font-weight:700;color:var(--accent)}
 .ovsum .stat2{display:grid;grid-template-columns:1fr 1fr;border-radius:8px;overflow:hidden;border:1px solid var(--line)}
 .ovsum .stat2 div{padding:8px;text-align:center;font-weight:700;font-size:12px}.ovsum .stat2 .u{background:#e3f4ea;color:#1b5e3a}.ovsum .stat2 .x{background:#fbe4e1;color:#8e2a22}
 .ovsum .stat2 b{display:block;font-family:var(--display);font-size:22px}
+.ovtop10{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}.ovtop10 li{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}.ovtop10 li:last-child{border-bottom:0}.ovtop10 .rk{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:13px;background:#e6ecf8;color:#1f3f8f}.ovtop10 .rk.g{background:#f8f0dc;color:#7a5a0e}.ovtop10 .nm b{display:block;font-size:14px;line-height:1.3}.ovtop10 .nm small,.ovtop10 .vals small{display:block;font-size:12px;color:var(--muted)}.ovtop10 .tb{height:6px;border-radius:3px;background:#eef1f6;margin-top:6px;overflow:hidden}.ovtop10 .tb i{display:block;height:100%;background:#1f3f8f;border-radius:3px}.ovtop10 .vals{text-align:right;font-size:12px;color:var(--muted);white-space:nowrap}.ovtop10 .vals b{font-family:var(--display);font-size:18px;color:var(--ink)}
+.hx{border:1px solid var(--line);border-radius:14px;padding:18px;background:var(--surface);display:flex;flex-direction:column;gap:14px}.hxhead{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.hxhead h3{margin:2px 0 4px;font-family:var(--display);font-size:26px}.hxhead p{margin:0;color:var(--muted)}.hxscore{min-width:84px;text-align:center;border-radius:12px;padding:10px;font-family:var(--display);font-size:32px;font-weight:700}.hxscore small{display:block;font-size:12px;font-family:inherit;font-weight:600}.hxscore.good{background:#e3f4ea;color:#1b5e3a}.hxscore.fair{background:#f8f0dc;color:#7a5a0e}.hxscore.poor{background:#fbe4e1;color:#8e2a22}.hxgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.hxi{border-radius:10px;padding:12px;border:1px solid var(--line);display:flex;flex-direction:column;gap:3px}.hxi span{font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase}.hxi.g2 span{color:#1b5e3a}.hxi.g1 span{color:#7a5a0e}.hxi.g0 span{color:#8e2a22}.hxi.g2{background:#f3faf6}.hxi.g1{background:#fdf9ef}.hxi.g0{background:#fdf3f2}.hxi em{font-style:normal;font-size:13px}.hxi small{font-size:12px;color:var(--muted)}.hx h4{margin:0;font-size:16px}.hxrx{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px;line-height:1.5}
+@media (max-width:900px){.hxgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .ovwhy{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:8px;font-size:13px;line-height:1.45}.ovsum .stat2.pn .u{background:#e6ecf8;color:#1f3f8f}.ovsum .stat2.pn .x{background:#f8f0dc;color:#7a5a0e}
 .ovlib{width:100%;border-collapse:collapse;font-size:14px}.ovlib th,.ovlib td{padding:9px 8px;border-bottom:1px solid var(--line);text-align:left}.ovlib .num{text-align:right;font-variant-numeric:tabular-nums}
 .ovtwo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
@@ -424,14 +427,14 @@ header.top .who{max-width:min(100%,560px)}header.top .role{justify-content:flex-
         <div class="ovkpis" id="ov_kpis"><p class="note">Loading…</p></div>
         <div class="ovmain">
           <div style="min-width:0"><h3>Library resources by classification</h3><p class="note" style="margin:0 0 8px">Copies in each Dewey Decimal class, from 000 General Works to 900 History and Geography, taken from the call number of each title.</p>
-            <div class="chartbox" style="height:380px"><canvas id="c_ovclass" role="img" aria-label="Bar chart of copies in each Dewey Decimal class"></canvas></div><div id="f_ovclass"></div><p class="note" id="ov_classnote" style="margin:6px 0 0"></p></div>
+            <div class="chartbox" style="height:380px"><canvas id="c_ovclass" role="img" aria-label="Bar chart of copies in each Dewey Decimal class"></canvas></div><div id="f_ovclass"></div><p class="note" id="ov_classnote" style="margin:6px 0 0"></p>
+            <h3 style="margin:22px 0 2px">Top libraries by Supplementary Learning Resources</h3><p class="note" style="margin:0 0 8px">Libraries ranked from the most to the fewest copies.</p><div id="ov_top"></div></div>
           <div class="ovsum" id="ov_sum"></div>
         </div>
         <div class="ovtwo">
           <div class="ovcard"><h3>Top 10 publishers</h3><p class="note" style="margin:0 0 6px">Publishers with the most titles. Spelling variations are counted together.</p><div class="chartbox" style="height:340px"><canvas id="c_ovpub" role="img" aria-label="Bar chart of the ten publishers with the most titles"></canvas></div><div id="f_ovpub"></div></div>
           <div class="ovcard"><h3>Top 10 authors</h3><p class="note" style="margin:0 0 6px">Authors with the most titles.</p><div class="chartbox" style="height:340px"><canvas id="c_ovauth" role="img" aria-label="Bar chart of the ten authors with the most titles"></canvas></div><div id="f_ovauth"></div></div>
         </div>
-        <div class="ovcard"><h3>Libraries</h3><div class="ovlist" id="ov_libs"></div></div>
       </div>
     </div>
     <div class="panel stack">
@@ -446,7 +449,7 @@ header.top .who{max-width:min(100%,560px)}header.top .role{justify-content:flex-
     </div>
     <div class="panel stack" id="healthPanel">
       <div class="row" style="justify-content:space-between;align-items:end">
-        <div><h2 id="hl_title">Collection health</h2><p class="note" style="margin:4px 0 0">Filipiniana share, age of the collection by copyright year, and titles suggested for weeding.</p></div>
+        <div><h2 id="hl_title">Collection health</h2><p class="note" style="margin:4px 0 0">Filipiniana share, age of the collection, balance of the collection, and titles suggested for weeding.</p></div>
         <label class="w180" style="min-width:240px">Library<select id="hl_lib"></select></label>
       </div>
       <div class="kpis" id="hl_kpis"><p class="note">Loading…</p></div>
@@ -456,9 +459,15 @@ header.top .who{max-width:min(100%,560px)}header.top .role{justify-content:flex-
         <div class="chartcard"><h3>Filipiniana collection</h3><p class="note">Titles marked as Filipiniana compared with the rest of the collection.</p>
           <div class="chartbox" style="height:240px"><canvas id="c_fil" role="img" aria-label="Bar chart of Filipiniana and other titles"></canvas></div><div id="f_fil"></div><div id="hl_filnote" class="note"></div></div>
       </div>
+      <div class="hx" id="hl_rx"></div>
+      <div class="stack">
+        <h3 style="margin:0">Balance of the collection</h3>
+        <p class="note" style="margin:0">Compared with the Recommended Growth Rate of Collection for School Library and Media Centers (Appendix A). Each title is counted once: Filipiniana first, then Fiction, then its Dewey Decimal class.</p>
+        <div class="tablebox" id="hl_bal"></div>
+      </div>
       <div class="stack">
         <h3 style="margin:0">Suggested for weeding</h3>
-        <p class="note" style="margin:0">Based on the CREW / MUSTIE weeding guidelines: titles in poor condition, and titles older than the usual age for their subject (science, technology, health, computers and encyclopedias: 5 years; travel guides: 5 years; most other subjects: 10 years; history: 15 years; literature, biography and Filipiniana: not weeded for age). These are suggestions for the librarian to review, not automatic removals.</p>
+        <p class="note" style="margin:0">The collection should have been published within the last 10 years. Titles published more than 10 years ago, and titles in poor condition, are suggested for weeding. These are suggestions only: the librarian checks each title before removing it.</p>
         <div class="tablebox" id="hl_weed"></div>
       </div>
     </div>
@@ -1044,22 +1053,41 @@ async function getDivRows(){if(DIV_CACHE&&DIV_CACHE.rows&&Date.now()-DIV_CACHE.a
   if(!DIV_P)DIV_P=api("records_full",{}).then(x=>{DIV_CACHE={at:Date.now(),S:divStats(x.rows),rows:x.rows};return x.rows}).finally(()=>{DIV_P=null});return DIV_P}
 function yearOf(h){const m=/(1[89]\d\d|20\d\d)/.exec(String(h.year||""));return m?+m[1]:null}
 function clsNum(h){const tok=[h.ddc,...String(h.callNo||"").split(/\s+/)].find(x=>/^\d{3}(\.\d+)?$/.test(String(x||"").trim()));if(tok)return parseFloat(tok);const m=/^(\d{3})/.exec(h.subject||"");return m?+m[1]:null}
-function weedLimit(h){if(h.filipiniana)return null;const t=h.type||"",n=clsNum(h);
-  if(t==="Periodical")return[5,"periodicals"];if(t==="Textbook"||t==="Learner's Material"||t==="Teacher's Guide")return[10,"textbooks and guides"];
-  if(t==="Reference")return n!=null&&n>=30&&n<40?[5,"encyclopedias"]:[10,"reference books"];
-  if(n==null)return[10,"this collection"];if(n>=4&&n<7)return[5,"computer books"];if(n>=30&&n<40)return[5,"encyclopedias"];
-  if(n>=500&&n<700)return[5,n<600?"science and mathematics":"technology and health"];if(n>=800&&n<900)return null;
-  if(n>=910&&n<920)return[5,"travel and geography"];if(n>=920&&n<930)return null;if(n>=900)return[15,"history"];return[10,DDC_NAMES[Math.floor(n/100)*100]||"this subject"]}
-function weedReasons(h,cy){const out=[],y=yearOf(h),L=weedLimit(h);if(L&&y&&cy-y>L[0])out.push(`Copyright ${y}: over ${L[0]} years old for ${L[1]}`);if(h.condition==="Poor")out.push("Poor condition");return out}
+function weedLimit(h){return[10,"the collection"]}
+function weedReasons(h,cy){const out=[],y=yearOf(h),L=weedLimit(h);if(L&&y&&cy-y>L[0])out.push(`Copyright ${y}: published more than ${L[0]} years ago`);if(h.condition==="Poor")out.push("Poor condition");return out}
 async function loadHealth(){const box=$("hl_kpis");if(!box)return;
   try{const all=await getDivRows(),id=$("hl_lib").value,rows=id?all.filter(h=>h.schoolId===id):all,nm=id?((schools.find(x=>x.id===id)||{}).name||id):"Division (all libraries)";
     $("hl_title").textContent="Collection health: "+nm;
-    if(!rows.length){box.innerHTML=`<div class="empty">No titles encoded yet for ${esc(nm)}.</div>`;$("hl_weed").innerHTML="";["c_age","c_fil"].forEach(k=>{if(CHARTS[k]){CHARTS[k].destroy();delete CHARTS[k]}});$("hl_agenote").textContent="";$("hl_filnote").textContent="";return}
+    if(!rows.length){box.innerHTML=`<div class="empty">No titles encoded yet for ${esc(nm)}.</div>`;$("hl_weed").innerHTML="";$("hl_rx").innerHTML="";$("hl_bal").innerHTML="";["c_age","c_fil"].forEach(k=>{if(CHARTS[k]){CHARTS[k].destroy();delete CHARTS[k]}});$("hl_agenote").textContent="";$("hl_filnote").textContent="";return}
     const cy=new Date().getFullYear(),S=divStats(rows),classed=S.titles-S.noDdc.titles,pct=c=>classed?c.titles/classed*100:0;
     const ages=[{label:`0–5 years (${cy-5}–${cy})`,n:0,color:"#227a4c"},{label:`6–10 years (${cy-10}–${cy-6})`,n:0,color:"#b98a1e"},{label:`Over 10 years (before ${cy-10})`,n:0,color:"#a4161a"},{label:"No copyright year",n:0,color:"#8a93a6"}];
     let fil=0,filC=0;const weed=[];
     rows.forEach(h=>{const y=yearOf(h),a=y==null?3:cy-y<=5?0:cy-y<=10?1:2;ages[a].n++;if(h.filipiniana){fil++;filC+=Number(h.copies)||1}const rs=weedReasons(h,cy);if(rs.length)weed.push({h,rs,y})});
     const P=n=>`${Math.round(n/rows.length*100)}%`;
+    const BAL=[["000–099 General works",4],["100–199 Philosophy",1],["200–299 Religion",4],["300–399 Social sciences",10],["400–499 Languages",1],["500–599 Pure sciences",10],["600–699 Applied sciences",10],["700–799 Fine arts and recreation",6],["800–899 Literature",10],["910–929 Geography, travel and biography",6],["900–999 History",8],["Fiction",15],["Filipiniana",15]],bc=BAL.map(()=>0);let noCls=0;
+    rows.forEach(h=>{let i;if(h.filipiniana)i=12;else if(h.type==="Novel"||h.type==="Storybook / Picture book"||LEGACY_LIT(h.subject)||/^(fic|f|e)\b/i.test(String(h.callNo||"").trim()))i=11;else{const n=clsNum(h);if(n==null){noCls++;return}i=n>=910&&n<930?9:n>=900?10:Math.min(8,Math.floor(n/100))}bc[i]++});
+    const bt=rows.length-noCls;
+    {const T=rows.length,cur=ages[0].n+ages[1].n,curP=cur/T*100,noYr=ages[3].n,dated=T-noYr,curPd=dated?cur/dated*100:0;
+      let cp=0,pp=0;rows.forEach(h=>{const c=Number(h.copies)||1;cp+=c;if(h.condition==="Poor")pp+=c});const useP=cp?(cp-pp)/cp*100:0;
+      const gaps=BAL.map(([lab,rec],i)=>{const a=bt?bc[i]/bt*100:0;return{lab,rec,a,c:bc[i],ok:bc[i]&&Math.abs(a-rec)<=Math.max(0.5,rec*0.25)}}),nBal=gaps.filter(g=>g.ok).length;
+      const compP=T?(T-noYr-noCls)/T*100:0;
+      const grade=(v,g,f)=>v>=g?2:v>=f?1:0,G=[grade(curPd,70,50),grade(nBal,9,5),grade(useP,90,75),grade(100-(noYr+noCls)/T*100,90,70)],score=G.reduce((a,b)=>a+b,0);
+      const verdict=score>=7?["Healthy","good","The collection is current, in good condition and fairly balanced."]:score>=4?["Needs attention","fair","The collection is usable, but some areas need work to keep it current and balanced."]:["Unhealthy","poor","The collection is old, unbalanced or in poor condition, and needs a plan to rebuild it."];
+      const LBL=["Weak","Fair","Good"],ind=(name,g,val,why)=>`<div class="hxi g${g}"><span>${LBL[g]}</span><b>${name}</b><em>${val}</em><small>${why}</small></div>`;
+      const need=g=>{const r=g.rec/100;return Math.max(1,Math.ceil((r*bt-g.c)/(1-r)))};
+      const under=gaps.filter(g=>!g.ok&&g.a<g.rec).sort((x,y)=>(y.rec-y.a)-(x.rec-x.a)),over=gaps.filter(g=>!g.ok&&g.a>g.rec);
+      const rx=[];
+      if(weed.length)rx.push(`<b>Weed ${weed.length.toLocaleString()} title(s)</b> published more than 10 years ago or in poor condition (see the list below). Check each one first, then remove it from the shelves and the catalog.`);
+      if(G[0]<2)rx.push(`<b>Buy recent books.</b> Only ${curPd.toFixed(0)}% of titles with a copyright year were published in the last 10 years. Aim for at least 70%: choose titles published in the last 5 years.`);
+      if(under.length)rx.push(`<b>Add titles in these classes</b> (about how many to reach the recommended share): ${under.slice(0,5).map(g=>`${g.lab} (+${need(g).toLocaleString()})`).join("; ")}.`);
+      if(over.length)rx.push(`<b>Hold off buying</b> in ${over.map(g=>g.lab).join(", ")}: these are already above the recommended share.`);
+      if(pp)rx.push(`<b>Repair or replace ${pp.toLocaleString()} cop${pp===1?"y":"ies"}</b> in poor condition.`);
+      if(noYr||noCls)rx.push(`<b>Complete the records:</b> encode ${[noYr?`the copyright year of ${noYr.toLocaleString()} title(s)`:"",noCls?`the class number of ${noCls.toLocaleString()} title(s)`:""].filter(Boolean).join(" and ")}, so this check is accurate.`);
+      if(!rx.length)rx.push("<b>Keep it up.</b> Continue adding recent titles every year and weed regularly.");
+      $("hl_rx").innerHTML=`<div class="hxhead"><div><span class="eyebrow">Collection health check</span><h3>${verdict[0]}</h3><p>${verdict[2]}</p></div><div class="hxscore ${verdict[1]}">${score}<small>/ 8</small></div></div>
+        <div class="hxgrid">${ind("Up-to-date",G[0],`${curPd.toFixed(0)}% published in the last 10 years`,"Good is 70% or more")}${ind("Balance",G[1],`${nBal} of 13 sections balanced`,"Compared with Appendix A")}${ind("Condition",G[2],`${useP.toFixed(0)}% of copies usable`,"Good is 90% or more")}${ind("Complete records",G[3],`${compP.toFixed(0)}% have year and class number`,"Good is 90% or more")}</div>
+        <h4>Prescription</h4><ol class="hxrx">${rx.map(x=>`<li>${x}</li>`).join("")}</ol>`}
+    $("hl_bal").innerHTML=`<table class="ovlib"><thead><tr><th>Classification</th><th class="num">Titles</th><th class="num">Recommended</th><th class="num">This collection</th><th>Status</th></tr></thead><tbody>${BAL.map(([lab,rec],i)=>{const a=bt?bc[i]/bt*100:0,d=a-rec,st=bc[i]&&Math.abs(d)<=Math.max(0.5,rec*0.25)?`<span class="good">Balanced</span>`:d<0?`<span class="poor">Needs more (${(rec-a).toFixed(1)} points below)</span>`:`<span style="color:#9a7212;font-weight:700">More than recommended (${d.toFixed(1)} points above)</span>`;return `<tr><td>${lab}</td><td class="num">${bc[i].toLocaleString()}</td><td class="num">${rec}%</td><td class="num"><b>${a.toFixed(1)}%</b></td><td>${st}</td></tr>`}).join("")}<tr><td><b>Total</b></td><td class="num"><b>${bt.toLocaleString()}</b></td><td class="num"><b>100%</b></td><td class="num"><b>100%</b></td><td></td></tr></tbody></table>${noCls?`<p class="note">${noCls.toLocaleString()} title(s) have no class number yet and are not counted here.</p>`:""}<p class="note">Balanced = close to the recommended share (within one-fourth of it, for example 7.5% to 12.5% when 10% is recommended).</p>`;
     box.innerHTML=kpis([[S.titles.toLocaleString(),`titles (${S.copies.toLocaleString()} copies)`],[`${fil.toLocaleString()} · ${P(fil)}`,"Filipiniana titles"],[P(ages[0].n),"copyright in the last 5 years"],[P(ages[0].n+ages[1].n),"copyright in the last 10 years"],[weed.length.toLocaleString(),"titles suggested for weeding"]]);
     $("hl_agenote").innerHTML=`<b>${ages[2].n.toLocaleString()}</b> title(s) are more than 10 years old${ages[3].n?`, and <b>${ages[3].n.toLocaleString()}</b> have no copyright year encoded`:""}.`;
     $("hl_filnote").innerHTML=`<b>${fil.toLocaleString()}</b> Filipiniana title(s), ${filC.toLocaleString()} copies.`;
@@ -1171,8 +1199,8 @@ async function loadOverview(){if(!$("ovPanel"))return;ovFillFilters();
     const realms=REALMS.map(r=>({...r,titles:RC[r.k].t,copies:RC[r.k].c}));
     const NONPRINT=["E-resource","Audio-visual"];let np=0,npT=0;rows.forEach(h=>{if(NONPRINT.includes(h.type)){np+=Number(h.copies)||1;npT++}});const pr=copies-np,prT=rows.length-npT;
     $("ov_sum").innerHTML=`<h3 style="margin:0">The 4 Realms</h3><p class="note" style="margin:0">Copies of the collection in each realm.</p><div class="chartbox" style="height:190px"><canvas id="c_ovrealm" role="img" aria-label="Pie chart of copies in each of the 4 Realms"></canvas></div><div id="f_ovrealm"></div><div class="realms">${realms.map(r=>`<div class="realm"><i style="background:${r.color}"></i><div><b>${r.name}</b> <span class="rn">${r.copies.toLocaleString()} copies · ${PC(r.copies)} · ${r.titles.toLocaleString()} titles</span><small>${r.desc}</small></div></div>`).join("")}</div><details class="note"><summary>How each realm is identified</summary><p style="margin:6px 0 0">Komiks: title or subject has komiks, comics, graphic novel, manga or zine, or class number 741.5. Aral Aklat: type is Textbook, Learner's Material, Teacher's Guide, Reference or Thesis, or class 000. Kid Lit: type is Storybook / Picture book, call number starts with E, subject is easy or picture books, words like children or young adult, or literature marked for Kindergarten to Grade 12. Booktopia: all other books. Encode the type, grade level and subject correctly so each book lands in the right realm.</p></details><div><span class="note" style="display:block;margin-bottom:6px">Print and non-print resources (copies)</span><div class="stat2 pn"><div class="u">Print<b>${pr.toLocaleString()}</b>${PC(pr)} · ${prT.toLocaleString()} titles</div><div class="x">Non-print<b>${np.toLocaleString()}</b>${PC(np)} · ${npT.toLocaleString()} titles</div></div><p class="note" style="margin:6px 0 0">Non-print = e-resources and audio-visual materials. All other types are print.</p></div><div class="k b3"><span>Resources per learner (schools)</span><b>${learners?ovRatio(ratio):"—"}</b>${learners&&ratio?`<span>${ratio>=1?`${ratio.toFixed(1)} resources for every learner`:`1 resource for every ${(1/ratio).toFixed(1)} learners`}</span>`:""}</div><div><span class="note" style="display:block;margin-bottom:6px">Condition of the copies</span><div class="stat2"><div class="u">Usable<b>${usable.toLocaleString()}</b>${PC(usable)}</div><div class="x">Unusable<b>${cond.Poor.toLocaleString()}</b>${PC(cond.Poor)}</div></div><p class="note" style="margin:6px 0 0">Usable = Good and Fair condition. Unusable = Poor condition.</p></div>`;
-    const libs=scope.map(s=>{const L=perLib[s.id]||{titles:0,copies:0};return{s,L,r:s.category!=="Library Hub"&&s.enrollment?L.copies/s.enrollment:null}}).sort((a,b)=>b.L.copies-a.L.copies||a.s.name.localeCompare(b.s.name));
-    $("ov_libs").innerHTML=libs.length?`<table class="ovlib"><thead><tr><th>Library</th><th>Type</th><th class="num">Titles</th><th class="num">Copies</th><th class="num">Copies per learner</th><th class="num">Suggested for weeding</th></tr></thead><tbody>${libs.map(({s,L,r})=>`<tr><td><b>${esc(s.name)}</b><div class="sub">${esc(s.district||"")}</div></td><td>${s.category==="Library Hub"?"Library Hub":"School library"}</td><td class="num">${L.titles.toLocaleString()}</td><td class="num">${L.copies.toLocaleString()}</td><td class="num">${r==null?"—":`<span class="${r<1?"poor":"good"}">${r.toFixed(2)}</span>`}</td><td class="num">${weedLib[s.id]?`<span class="poor">${weedLib[s.id].toLocaleString()}</span>`:"0"}</td></tr>`).join("")}</tbody></table><p class="note">Suggested for weeding follows the CREW / MUSTIE guidelines. To see the list of titles, choose the library under Collection health below.</p>`:`<div class="empty">No libraries match these filters.</div>`;
+    const libs=scope.map(s=>({s,L:perLib[s.id]||{titles:0,copies:0}})).filter(x=>x.L.copies).sort((a,b)=>b.L.copies-a.L.copies||b.L.titles-a.L.titles),mx=libs.length?libs[0].L.copies:1,TOPN=10;
+    $("ov_top").innerHTML=libs.length?`<ol class="ovtop10">${libs.slice(0,TOPN).map(({s,L},i)=>`<li><span class="rk${i<3?" g":""}">${i+1}</span><div class="nm"><b>${esc(s.name)}</b><small>${esc(s.district||"")} · ${s.category==="Library Hub"?"Library Hub":"School library"}</small><div class="tb"><i style="width:${Math.max(2,L.copies/mx*100)}%"></i></div></div><div class="vals"><b>${L.copies.toLocaleString()}</b> copies<small>${L.titles.toLocaleString()} titles</small></div></li>`).join("")}</ol>${libs.length>TOPN?`<p class="note" style="margin:6px 0 0">Showing the top ${TOPN} of ${libs.length} libraries with encoded resources.</p>`:""}`:`<div class="empty">No resources encoded yet.</div>`;
     const topP=S.pubs.slice(0,10),topA=S.auths.slice(0,10);
     if(!(await ensureChartJs())){$("c_ovclass").parentNode.hidden=true;$("f_ovclass").innerHTML=barChart("",classes.map(x=>({label:x.label,value:x.copies})),"copies");
       $("c_ovpub").parentNode.hidden=true;$("f_ovpub").innerHTML=barChart("",topP.map(p=>({label:p.name,value:p.titles})),"titles");
