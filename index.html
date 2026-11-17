@@ -350,6 +350,7 @@ header.top .who{max-width:min(100%,560px)}header.top .role{justify-content:flex-
           <label>Subject / classification *<select id="h_subject" required></select></label>
           <label>Grade level<select id="h_grade"></select></label>
           <label>Type of resource<select id="h_type"></select></label>
+          <label id="h_btypeL">Kind of book<select id="h_btype"></select></label>
           <label class="checkline"><span style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="h_fil" style="width:auto"> Filipiniana collection</span><span class="hint">About the Philippines, by a Filipino author, published in the Philippines, or in a Philippine language. Checked automatically; you can change it.</span></label>
         </div>
       </fieldset>
@@ -566,7 +567,14 @@ function callPrefix(d){const t=d.type||"";if(t==="Reference")return"R";if(t==="T
   if(d.filipiniana===true||d.filipiniana==="true")return"Fil";return(SUBJ_CALL[d.subject]||[""])[0]}
 const SUBJ_CALL={"000 General Works":["","000"],"100 Philosophy & Psychology":["","100"],"200 Religion & Values Education":["","200"],"300 Social Sciences / Araling Panlipunan":["","300"],"400 Language / English":["","420"],"500 Science & Mathematics":["","500"],"600 Technology / TLE & Health":["","600"],"700 Arts, MAPEH & Recreation":["","700"],"800 Literature":["","800"],"899 Filipino Literature":["","899.21"],"900 History & Geography":["","900"],"Fiction":["F",""],"Easy Books (picture books, K–3)":["E",""],"Biography":["B","920"],"Reference (Dictionary, Encyclopedia)":["R","030"],"Filipiniana":["Fil","959.9"],"Textbooks / Learner's Materials":["TX",""],"Teacher's Guides":["TG","371.3"],"Periodicals":["Per","050"]};
 const GRADES=["","Kindergarten","Grade 1","Grade 2","Grade 3","Grade 4","Grade 5","Grade 6","Grade 7","Grade 8","Grade 9","Grade 10","Grade 11","Grade 12","Multi-grade / General"];
-const TYPES=["Book","Storybook / Picture book","Novel","Textbook","Learner's Material","Teacher's Guide","Reference","Thesis / Dissertation","Periodical","E-resource","Audio-visual","Other"];
+const TYPES=["Book","Storybook / Picture book","Novel","Textbook","Learner's Material","Teacher's Guide","Reference","Thesis / Dissertation","Journal","Periodical","Globe","Map","E-resource","Audio-visual","Other"];
+const MAIN_TYPES=[["Book","Book"],["Thesis / Dissertation","Thesis / Dissertation"],["Journal","Journal"],["Periodical","Periodicals (newspaper, magazine)"],["Globe","Globe"],["Map","Map"],["E-resource","E-Resource"],["Audio-visual","Audio-visual"],["Other","Others"]];
+const BOOK_KINDS=[["","Book (general)"],["Storybook / Picture book","Storybook / Picture book"],["Novel","Novel"],["Textbook","Textbook"],["Reference","Reference"]];
+const BOOKISH=["Book","Storybook / Picture book","Novel","Textbook","Reference","Learner's Material","Teacher's Guide"];
+function fillTypeSelects(){$("h_type").innerHTML=MAIN_TYPES.map(([v,l])=>`<option value="${esc(v)}">${esc(l)}</option>`).join("");$("h_btype").innerHTML=BOOK_KINDS.map(([v,l])=>`<option value="${esc(v)}">${esc(l)}</option>`).join("");toggleBType()}
+function toggleBType(){$("h_btypeL").hidden=$("h_type").value!=="Book"}
+function typeVal(){return $("h_type").value==="Book"?($("h_btype").value||"Book"):$("h_type").value}
+function setType(v){v=v||"Book";if(BOOKISH.includes(v)){$("h_type").value="Book";const b=v==="Book"?"":v;if(b&&![...$("h_btype").options].some(o=>o.value===b))$("h_btype").insertAdjacentHTML("beforeend",`<option value="${esc(b)}">${esc(b)}</option>`);$("h_btype").value=b}else{$("h_type").value=MAIN_TYPES.some(([x])=>x===v)?v:"Other";$("h_btype").value=""}toggleBType()}
 const ITYPE={"Book":"BK","Textbook":"TB","Learner's Material":"LM","Reference":"REF","Periodical":"SER","E-resource":"ER","Audio-visual":"AV","Other":"OTH"};
 const FUNDS=["","MOOE","DepEd Central / Regional Allocation","Division","LGU / SEF","Donation","Brigada Eskwela","PTA","Other"];
 const LANGS={"English":"eng","Filipino":"fil","Cebuano / Bisaya":"ceb","Other":"und"};
@@ -621,7 +629,7 @@ const RULES=`<div class="rules"><h3>Borrowing rules and policy</h3><div class="r
 const isOverdue=r=>r.status==="Lent"&&r.dueDate&&r.dueDate<todayISO();
 
 /* ===================== static selects ===================== */
-$("h_subject").innerHTML=opts(SUBJECTS,"— Choose subject —");$("h_grade").innerHTML=opts(GRADES);$("h_type").innerHTML=opts(TYPES);$("h_fund").innerHTML=opts(FUNDS);
+$("h_subject").innerHTML=opts(SUBJECTS,"— Choose subject —");$("h_grade").innerHTML=opts(GRADES);fillTypeSelects();$("h_fund").innerHTML=opts(FUNDS);
 $("h_lang").innerHTML=opts(Object.keys(LANGS));$("s_cat").innerHTML=opts(CATS);
 $("fSubject").innerHTML=opts(SUBJECTS,"All subjects");$("fGrade").innerHTML=opts(GRADES.filter(Boolean),"All");
 $("fCat").innerHTML=opts(CATS,"All types");$("r_cat").innerHTML=opts(CATS,"All types");
@@ -774,7 +782,7 @@ function suggestCall(d){const prefix=callPrefix(d);
   const cls=NO_CLASS.includes(prefix)?"":ddc;
   const mark=lcCutter(mainEntryWord(d.author,d.title));
   return [prefix,cls,mark,yr].filter(Boolean).join(" ");}
-const formSnapshot=()=>({filipiniana:$("h_fil").checked,subject:$("h_subject").value,type:$("h_type").value,year:$("h_year").value,author:$("h_author").value,title:$("h_title").value,ddc:$("h_ddc").value});
+const formSnapshot=()=>({filipiniana:$("h_fil").checked,subject:$("h_subject").value,type:typeVal(),year:$("h_year").value,author:$("h_author").value,title:$("h_title").value,ddc:$("h_ddc").value});
 let ddcManual=false,subjManual=false,ddcWarned=false,filManual=false;
 function autoFil(){if(filManual)return;const s=formSnapshot();const v=isFilipiniana({...s,callNo:$("h_call").value,language:$("h_lang").value,publisher:$("h_publisher").value,place:$("h_place").value});if($("h_fil").checked!==v){$("h_fil").checked=v;if(!callManual)$("h_call").value=suggestCall(formSnapshot())}}
 const STORY_CHIPS=[["899.2113","Storybook / kuwento (Filipino)"],["823","Storybook / novel (English)"],["031","Encyclopedia"],["423","English dictionary"]];
@@ -1185,7 +1193,7 @@ const REALMS=[{k:"kid",name:"Kid Lit",color:"#e07a3f",desc:"Children's and young
 const KOMIKS_RE=/\b(komiks?|comics?|graphic novels?|manga|zines?|webtoons?)\b/i,KID_RE=/\b(children'?s?|juvenile|young adults?|kids?|easy books?|picture books?|storybooks?|nursery|fairy tales?|kuwentong pambata|pambata)\b/i;
 function realmOf(h){const t=h.type||"",txt=`${h.title||""} ${h.subject||""}`,n=clsNum(h);
   if(KOMIKS_RE.test(txt)||(n!=null&&n>=741.5&&n<741.6))return"komiks";
-  if(["Textbook","Learner's Material","Teacher's Guide","Reference","Thesis / Dissertation"].includes(t))return"aral";
+  if(["Textbook","Learner's Material","Teacher's Guide","Reference","Thesis / Dissertation","Globe","Map"].includes(t))return"aral";
   if(t==="Storybook / Picture book"||/^(easy|picture)/i.test(String(h.subject||"").trim())||/^(fil\s+)?e\b/i.test(String(h.callNo||"").trim())||KID_RE.test(txt))return"kid";
   const lit=t==="Novel"||LEGACY_LIT(h.subject)||(n!=null&&n>=800&&n<900);if(lit&&/^(Kindergarten|Grade \d+)$/.test(h.grade||""))return"kid";
   if(n!=null&&n<100)return"aral";
@@ -1216,8 +1224,8 @@ async function loadOverview(){if(!$("ovPanel"))return;ovFillFilters();
     $("ov_classnote").textContent=S.noDdc.titles?`${S.noDdc.titles.toLocaleString()} title(s) have no class number in the call number yet, so they are shown as "No class number yet".`:"";
     const RC={kid:{t:0,c:0},komiks:{t:0,c:0},book:{t:0,c:0},aral:{t:0,c:0}};rows.forEach(h=>{const r=RC[realmOf(h)];r.t++;r.c+=Number(h.copies)||1});
     const realms=REALMS.map(r=>({...r,titles:RC[r.k].t,copies:RC[r.k].c}));
-    const NONPRINT=["E-resource","Audio-visual"];let np=0,npT=0;rows.forEach(h=>{if(NONPRINT.includes(h.type)){np+=Number(h.copies)||1;npT++}});const pr=copies-np,prT=rows.length-npT;
-    $("ov_sum").innerHTML=`<h3 style="margin:0">The 4 Realms</h3><p class="note" style="margin:0">Copies of the collection in each realm.</p><div class="chartbox" style="height:190px"><canvas id="c_ovrealm" role="img" aria-label="Pie chart of copies in each of the 4 Realms"></canvas></div><div id="f_ovrealm"></div><div class="realms">${realms.map(r=>`<div class="realm"><i style="background:${r.color}"></i><div><b>${r.name}</b> <span class="rn">${r.copies.toLocaleString()} copies · ${PC(r.copies)} · ${r.titles.toLocaleString()} titles</span><small>${r.desc}</small></div></div>`).join("")}</div><details class="note"><summary>How each realm is identified</summary><p style="margin:6px 0 0">Komiks: title or subject has komiks, comics, graphic novel, manga or zine, or class number 741.5. Aral Aklat: type is Textbook, Learner's Material, Teacher's Guide, Reference or Thesis, or class 000. Kid Lit: type is Storybook / Picture book, call number starts with E, subject is easy or picture books, words like children or young adult, or literature marked for Kindergarten to Grade 12. Booktopia: all other books. Encode the type, grade level and subject correctly so each book lands in the right realm.</p></details><div><span class="note" style="display:block;margin-bottom:6px">Print and non-print resources (copies)</span><div class="stat2 pn"><div class="u">Print<b>${pr.toLocaleString()}</b>${PC(pr)} · ${prT.toLocaleString()} titles</div><div class="x">Non-print<b>${np.toLocaleString()}</b>${PC(np)} · ${npT.toLocaleString()} titles</div></div><p class="note" style="margin:6px 0 0">Non-print = e-resources and audio-visual materials. All other types are print.</p></div><div class="k b3"><span>Resources per learner (schools)</span><b>${learners?ovRatio(ratio):"—"}</b>${learners&&ratio?`<span>${ratio>=1?`${ratio.toFixed(1)} resources for every learner`:`1 resource for every ${(1/ratio).toFixed(1)} learners`}</span>`:""}</div><div><span class="note" style="display:block;margin-bottom:6px">Condition of the copies</span><div class="stat2"><div class="u">Usable<b>${usable.toLocaleString()}</b>${PC(usable)}</div><div class="x">Unusable<b>${cond.Poor.toLocaleString()}</b>${PC(cond.Poor)}</div></div><p class="note" style="margin:6px 0 0">Usable = Good and Fair condition. Unusable = Poor condition.</p></div>`;
+    const NONPRINT=["E-resource","Audio-visual","Globe","Map"];let np=0,npT=0;rows.forEach(h=>{if(NONPRINT.includes(h.type)){np+=Number(h.copies)||1;npT++}});const pr=copies-np,prT=rows.length-npT;
+    $("ov_sum").innerHTML=`<h3 style="margin:0">The 4 Realms</h3><p class="note" style="margin:0">Copies of the collection in each realm.</p><div class="chartbox" style="height:190px"><canvas id="c_ovrealm" role="img" aria-label="Pie chart of copies in each of the 4 Realms"></canvas></div><div id="f_ovrealm"></div><div class="realms">${realms.map(r=>`<div class="realm"><i style="background:${r.color}"></i><div><b>${r.name}</b> <span class="rn">${r.copies.toLocaleString()} copies · ${PC(r.copies)} · ${r.titles.toLocaleString()} titles</span><small>${r.desc}</small></div></div>`).join("")}</div><details class="note"><summary>How each realm is identified</summary><p style="margin:6px 0 0">Komiks: title or subject has komiks, comics, graphic novel, manga or zine, or class number 741.5. Aral Aklat: type is Textbook, Learner's Material, Teacher's Guide, Reference or Thesis, or class 000. Kid Lit: type is Storybook / Picture book, call number starts with E, subject is easy or picture books, words like children or young adult, or literature marked for Kindergarten to Grade 12. Booktopia: all other books. Encode the type, grade level and subject correctly so each book lands in the right realm.</p></details><div><span class="note" style="display:block;margin-bottom:6px">Print and non-print resources (copies)</span><div class="stat2 pn"><div class="u">Print<b>${pr.toLocaleString()}</b>${PC(pr)} · ${prT.toLocaleString()} titles</div><div class="x">Non-print<b>${np.toLocaleString()}</b>${PC(np)} · ${npT.toLocaleString()} titles</div></div><p class="note" style="margin:6px 0 0">Non-print = e-resources, audio-visual materials, globes and maps. All other types are print.</p></div><div class="k b3"><span>Resources per learner (schools)</span><b>${learners?ovRatio(ratio):"—"}</b>${learners&&ratio?`<span>${ratio>=1?`${ratio.toFixed(1)} resources for every learner`:`1 resource for every ${(1/ratio).toFixed(1)} learners`}</span>`:""}</div><div><span class="note" style="display:block;margin-bottom:6px">Condition of the copies</span><div class="stat2"><div class="u">Usable<b>${usable.toLocaleString()}</b>${PC(usable)}</div><div class="x">Unusable<b>${cond.Poor.toLocaleString()}</b>${PC(cond.Poor)}</div></div><p class="note" style="margin:6px 0 0">Usable = Good and Fair condition. Unusable = Poor condition.</p></div>`;
     const libs=scope.map(s=>({s,L:perLib[s.id]||{titles:0,copies:0}})).filter(x=>x.L.copies).sort((a,b)=>b.L.copies-a.L.copies||b.L.titles-a.L.titles),mx=libs.length?libs[0].L.copies:1,TOPN=10;
     $("ov_top").innerHTML=libs.length?`<ol class="ovtop10">${libs.slice(0,TOPN).map(({s,L},i)=>`<li><span class="rk${i<3?" g":""}">${i+1}</span><div class="nm"><b>${esc(s.name)}</b><small>${esc(s.district||"")} · ${s.category==="Library Hub"?"Library Hub":"School library"}</small><div class="tb"><i style="width:${Math.max(2,L.copies/mx*100)}%"></i></div></div><div class="vals"><b>${L.copies.toLocaleString()}</b> copies<small>${L.titles.toLocaleString()} titles</small></div></li>`).join("")}</ol>${libs.length>TOPN?`<p class="note" style="margin:6px 0 0">Showing the top ${TOPN} of ${libs.length} libraries with encoded resources.</p>`:""}`:`<div class="empty">No resources encoded yet.</div>`;
     const topP=S.pubs.slice(0,10),topA=S.auths.slice(0,10);
@@ -1622,10 +1630,10 @@ function renderAdd(){const ok=canAdd();$("addGate").hidden=ok;$("addArea").hidde
 function setCoverPreview(src){$("coverPrev").innerHTML=src?`<img src="${esc(src)}" alt="Cover preview">`:"No cover";$("coverClear").hidden=!src}
 function resetForm(){filManual=false;$("classCheck").hidden=true;$("pubHint").innerHTML="";$("pubHint").dataset.m="";editing=null;coverData=null;coverChanged=false;callManual=false;ddcManual=false;subjManual=false;ddcWarned=false;showChips(false);
   $("formTitle").textContent="Add a resource to your library's holdings";$("cancelEdit").hidden=true;$("saveBtn").textContent="Save resource";$("delBox").innerHTML="";
-  const keep=$("h_school").value;$("addForm").reset();$("h_school").value=lockedLib()||keep;$("h_copies").value=1;setCoverPreview(null);
+  const keep=$("h_school").value;$("addForm").reset();setType("Book");$("h_school").value=lockedLib()||keep;$("h_copies").value=1;setCoverPreview(null);
   $("callHint").textContent="A call number is suggested from the subject, author and year. You can change it.";}
 function startEdit(){const h=current;if(!h||!canEditRec(h))return;closeModal();location.hash="add";
-  setTimeout(()=>{Object.entries(F).forEach(([k,f])=>$("h_"+k).value=h[f]??"");if(!$("h_lang").value)$("h_lang").value="English";{const L=legacyRec(h);$("h_subject").value=L.subject||"";$("h_type").value=TYPES.includes(L.type)?L.type:"Book";$("h_fil").checked=L.filipiniana}
+  setTimeout(()=>{Object.entries(F).forEach(([k,f])=>$("h_"+k).value=h[f]??"");if(!$("h_lang").value)$("h_lang").value="English";{const L=legacyRec(h);$("h_subject").value=L.subject||"";setType(TYPES.includes(L.type)?L.type:"Book");$("h_fil").checked=L.filipiniana}
     editing=h;callManual=true;ddcManual=true;subjManual=true;ddcWarned=false;filManual=true;coverChanged=false;coverData=null;setCoverPreview(h.cover||null);
     $("formTitle").textContent="Edit resource";$("cancelEdit").hidden=false;$("saveBtn").textContent="Update resource";
     $("delBox").innerHTML=`<button type="button" class="danger" id="delAsk">Remove from holdings</button>`;$("h_title").focus();},50);}
@@ -1636,7 +1644,7 @@ function showSaved(h){const box=$("savedBox");box.hidden=false;const codes=barco
    <div class="row"><button type="button" id="savedPrint">Print barcode label${codes.length>1?"s":""}</button><button type="button" class="ghost" id="savedCards">Print catalog cards</button></div>`;
   box._rec=h;}
 $("addForm").addEventListener("submit",async e=>{e.preventDefault();if(!canAdd())return;
-  const d={};Object.entries(F).forEach(([k,f])=>d[f]=$("h_"+k).value.trim());d.filipiniana=$("h_fil").checked;
+  const d={};Object.entries(F).forEach(([k,f])=>d[f]=$("h_"+k).value.trim());d.type=typeVal();d.filipiniana=$("h_fil").checked;
   if(lockedLib())d.schoolId=lockedLib();
   if(!d.schoolId||!d.accessionNo||!d.title||!d.subject){$("formMsg").textContent="Fill in library, accession no., title and subject.";return}
   {const tk=d.callNo.split(/\s+/).find(t=>/^\d{3}(\.\d+)?$/.test(t));if(tk)d.ddc=tk;else if(d.callNo&&!NO_CLASS.includes(d.callNo.split(/\s+/)[0]))d.ddc="";}
@@ -1652,7 +1660,7 @@ $("addForm").addEventListener("submit",async e=>{e.preventDefault();if(!canAdd()
   catch(err){$("formMsg").textContent="Couldn't save: "+err.message}
   $("saveBtn").disabled=false;});
 $("cancelEdit").onclick=()=>{resetForm();$("formMsg").textContent=""};
-["h_type","h_year","h_author","h_title"].forEach(id=>$(id).addEventListener("input",autoCall));
+["h_type","h_btype","h_year","h_author","h_title"].forEach(id=>$(id).addEventListener("input",autoCall));$("h_type").addEventListener("change",toggleBType);
 $("h_call").addEventListener("input",()=>{callManual=$("h_call").value.trim()!==""});
 $("h_publisher").addEventListener("change",checkPub);
 $("h_fil").addEventListener("change",()=>{filManual=true;if(!callManual)$("h_call").value=suggestCall(formSnapshot())});
