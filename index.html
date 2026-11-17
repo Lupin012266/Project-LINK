@@ -296,6 +296,7 @@ header.top .who{max-width:min(100%,560px)}header.top .role{justify-content:flex-
     <a href="#loans" data-view="loans">Interlibrary loans<span class="count" id="illCount" hidden></span></a>
     <a href="#dashboard" data-view="dashboard">Dashboard</a>
     <a href="#reports" data-view="reports" id="repTab" hidden>Reports</a>
+    <a href="#health" data-view="health" id="hlTab" hidden>Library collection health</a>
     <a href="#libraries" data-view="libraries">Libraries</a>
     <a href="#analytics" data-view="analytics" id="anaTab" hidden>Site analytics</a>
     <a href="#account" data-view="account"><span id="acctLabel">Sign up / Log in</span><span class="count" id="pendCount" hidden></span></a>
@@ -450,9 +451,13 @@ header.top .who{max-width:min(100%,560px)}header.top .role{justify-content:flex-
       </div>
       <div id="profileOut"></div>
     </div>
+  </section>
+
+  <!-- COLLECTION HEALTH (division staff only) -->
+  <section id="v-health" class="stack" hidden>
     <div class="panel stack" id="healthPanel">
       <div class="row" style="justify-content:space-between;align-items:end">
-        <div><h2 id="hl_title">Collection health</h2><p class="note" style="margin:4px 0 0">Filipiniana share, age of the collection, balance of the collection, and titles suggested for weeding.</p></div>
+        <div><h2 id="hl_title">Library collection health</h2><p class="note" style="margin:4px 0 0">Choose a school library to see its health check, prescription, balance of the collection and titles suggested for weeding. Only the Division Librarian, the LR Manager and the LR Project Development Officer can see this page.</p></div>
         <label class="w180" style="min-width:240px">Library<select id="hl_lib"></select></label>
       </div>
       <div class="kpis" id="hl_kpis"><p class="note">Loading…</p></div>
@@ -603,7 +608,9 @@ function availHTML(h){
     return h.binOut?`<span class="pill poor">${esc(h.bin)} on loan</span><div class="sub">Back by ${fmtDate(h.binDue)}</div>`:`<span class="pill good">${esc(h.bin)} available</span>`}
   const a=Math.max(0,h.copies-h.outCopies);
   return a?`<span class="pill good">Available</span><div class="sub">${a} of ${h.copies} cop${h.copies===1?"y":"ies"}</div>`:`<span class="pill poor">On loan</span><div class="sub">Expected back ${fmtDate(h.nextDue)||"soon"}</div>`}
-function borrowBtn(h,cls){const mine=myLib();if(!canAdd()||!mine||h.schoolId===mine)return "";
+function borrowBtn(h,cls){const mine=myLib();
+  if(!canAdd()&&!isDiv())return `<button type="button" class="${cls||""}" data-guestborrow="${h._id}">${isHub(h.schoolId)?"Borrow this bin":"Request to borrow"}</button>`;
+  if(!canAdd()||!mine||h.schoolId===mine)return "";
   const hub=isHub(h.schoolId);
   return `<button type="button" class="${cls||""}" data-borrow="${h._id}"${availNow(h)?"":" disabled"}>${hub?"Borrow this bin":"Request to borrow"}</button>`}
 const RULES=`<div class="rules"><h3>Borrowing rules and policy</h3><div class="rulegrid">
@@ -629,14 +636,15 @@ function libOptions(){
   $("myLibL").hidden=!!locked;}
 
 /* ===================== routing ===================== */
-const VIEWS=["home","catalog","add","loans","dashboard","reports","libraries","analytics","account"];
-function currentView(){const h=location.hash.slice(1);return VIEWS.includes(h)&&(h!=="home"||ME)&&(h!=="reports"||ME)?h:(ME?"home":"catalog")}
+const VIEWS=["home","catalog","add","loans","dashboard","reports","health","libraries","analytics","account"];
+function currentView(){const h=location.hash.slice(1);return VIEWS.includes(h)&&(h!=="home"||ME)&&(h!=="reports"||ME)&&(h!=="health"||canSeeAll())?h:(ME?"home":"catalog")}
 function route(){const v=currentView();
   if(location.hash==="#reports"&&!ME){toast("Please log in to view and print reports.");history.replaceState(null,"","#account");return route()}
+  if(location.hash==="#health"&&!canSeeAll()){history.replaceState(null,"",ME?"#home":"#catalog");return route()}
   VIEWS.forEach(x=>{$("v-"+x).hidden=x!==v});
   document.querySelectorAll("nav.tabs a").forEach(a=>{if(a.dataset.view===v)a.setAttribute("aria-current","page");else a.removeAttribute("aria-current")});
   if(v==="home")loadHome();else if(v==="catalog")loadCatalog();else if(v==="add")renderAdd();else if(v==="loans")loadLoans();else if(v==="dashboard")loadDashboard();
-  else if(v==="reports")loadReport();else if(v==="libraries")renderLibraries();else if(v==="analytics")loadAnalytics();else if(v==="account")renderAccount();
+  else if(v==="reports")loadReport();else if(v==="health")openHealth();else if(v==="libraries")renderLibraries();else if(v==="analytics")loadAnalytics();else if(v==="account")renderAccount();
   logVisit(v);}
 addEventListener("hashchange",route);
 
@@ -646,7 +654,7 @@ function applyRole(){libOptions();
   if(!ME)rl.innerHTML=`Browsing as a visitor · <a href="#account">Log in</a>`;
   else rl.innerHTML=`<span>Logged in as <b>${esc(ME.name)}</b> · ${isAdmin()?"Division librarian":isDiv()?esc(ME.userType.replace(" (Division Office)",""))+" · Division Office":isApproved()?esc(libName(ME.schoolId)):ME.status==="rejected"?"not approved":"waiting for approval"}</span><span id="locLine"></span><button type="button" class="ghost sm" id="logoutBtn">Log out</button>`;
   if(ME){showLoc();gpsGeo()}
-  $("acctLabel").textContent=!ME?"Sign up / Log in":isAdmin()?"Librarian accounts":"My profile";$("homeTab").hidden=!ME;$("repTab").hidden=!ME;$("d_print").hidden=!ME;$("r_backup").hidden=!isAdmin();$("anaTab").hidden=!canSeeAll();
+  $("acctLabel").textContent=!ME?"Sign up / Log in":isAdmin()?"Librarian accounts":"My profile";$("homeTab").hidden=!ME;$("repTab").hidden=!ME;$("d_print").hidden=!ME;$("r_backup").hidden=!isAdmin();$("anaTab").hidden=!canSeeAll();$("hlTab").hidden=!canSeeAll();
   const b=$("acctBanner");b.hidden=true;
   if(ME&&ME.mustChange){b.hidden=false;b.innerHTML=`The division librarian reset your password. Please <a href="#account">set a new password</a> now.`}
   else if(ME&&!isAdmin()&&ME.status==="pending"){b.hidden=false;b.innerHTML="Your registration is <b>waiting for approval</b> by the division librarian. You can add resources once you're approved."}
@@ -1060,7 +1068,7 @@ function weedLimit(h){return[10,"the collection"]}
 function weedReasons(h,cy){const out=[],y=yearOf(h),L=weedLimit(h);if(L&&y&&cy-y>L[0])out.push(`Copyright ${y}: published more than ${L[0]} years ago`);if(h.condition==="Poor")out.push("Poor condition");return out}
 async function loadHealth(){const box=$("hl_kpis");if(!box)return;
   try{const all=await getDivRows(),id=$("hl_lib").value,rows=id?all.filter(h=>h.schoolId===id):all,nm=id?((schools.find(x=>x.id===id)||{}).name||id):"Division (all libraries)";
-    $("hl_title").textContent="Collection health: "+nm;
+    $("hl_title").textContent="Library collection health: "+nm;
     if(!rows.length){box.innerHTML=`<div class="empty">No titles encoded yet for ${esc(nm)}.</div>`;$("hl_weed").innerHTML="";$("hl_rx").innerHTML="";$("hl_bal").innerHTML="";["c_age","c_fil"].forEach(k=>{if(CHARTS[k]){CHARTS[k].destroy();delete CHARTS[k]}});$("hl_agenote").textContent="";$("hl_filnote").textContent="";return}
     const cy=new Date().getFullYear(),S=divStats(rows),classed=S.titles-S.noDdc.titles,pct=c=>classed?c.titles/classed*100:0;
     const ages=[{label:`0–5 years (${cy-5}–${cy})`,n:0,color:"#227a4c"},{label:`6–10 years (${cy-10}–${cy-6})`,n:0,color:"#b98a1e"},{label:`Over 10 years (before ${cy-10})`,n:0,color:"#a4161a"},{label:"No copyright year",n:0,color:"#8a93a6"}];
@@ -1223,7 +1231,8 @@ async function loadOverview(){if(!$("ovPanel"))return;ovFillFilters();
     if(topP.length)hbar("c_ovpub",topP.map(p=>p.name),topP.map(p=>p.titles),topP.map((_,i)=>i<3?"#b98a1e":"#1f3f8f"),"titles",{end:i=>topP[i].titles.toLocaleString(),tooltip:i=>`${topP[i].titles.toLocaleString()} titles · ${topP[i].copies.toLocaleString()} copies`});else{if(CHARTS.c_ovpub){CHARTS.c_ovpub.destroy();delete CHARTS.c_ovpub}$("f_ovpub").innerHTML=`<p class="note">No publishers encoded yet.</p>`}
     if(topA.length)hbar("c_ovauth",topA.map(a=>a.name),topA.map(a=>a.titles),topA.map((_,i)=>i<3?"#b98a1e":"#227a4c"),"titles",{end:i=>topA[i].titles.toLocaleString(),tooltip:i=>`${topA[i].titles.toLocaleString()} titles · ${topA[i].copies.toLocaleString()} copies`});else{if(CHARTS.c_ovauth){CHARTS.c_ovauth.destroy();delete CHARTS.c_ovauth}$("f_ovauth").innerHTML=`<p class="note">No authors encoded yet.</p>`}
   }catch(e){$("ov_kpis").innerHTML=`<div class="empty">${esc(e.message)}</div>`}}
-async function loadDashboard(){loadOverview();loadProfile();if(!$("hl_lib").options.length){$("hl_lib").innerHTML=$("d_lib").innerHTML;$("hl_lib").value=$("d_lib").value}loadHealth()}
+async function loadDashboard(){loadOverview();loadProfile()}
+function openHealth(){if(!canSeeAll())return;if(!$("hl_lib").options.length){$("hl_lib").innerHTML=$("d_lib").innerHTML;$("hl_lib").value=""}loadHealth()}
 /* ===================== reports ===================== */
 let lastReport=null;
 function reportParams(){return{type:$("r_type").value,school:$("r_school").value,cat:$("r_cat").value,from:$("r_from").value,to:$("r_to").value}}
@@ -1701,6 +1710,7 @@ document.addEventListener("click",async e=>{const t=e.target.closest("button");i
   if(t.id==="savedCards"){const h=$("savedBox")._rec;if(h)printCards([h],h.title);return}
   if(ds.rec){current=null;showRecord(ds.rec);return}
   if(ds.recmode){store("link-recmode",ds.recmode==="barcode"||ds.recmode==="cards"?"normal":ds.recmode);showRecord(ds.id,ds.recmode);return}
+  if(ds.guestborrow){openModal(`<div class="sheethead"><div><div class="eyebrow">Interlibrary loan</div><h3 id="sheetTitle">Ask your librarian to borrow this</h3></div><button type="button" class="ghost sm" data-close>Close</button></div><div class="stack"><p style="margin:0;font-size:16px;line-height:1.6">Borrowing in Project LINK is a <b>librarian-to-librarian transaction</b>. Please go to your <b>school librarian or library in-charge</b> and ask them to borrow this title for you.</p><p class="note" style="margin:0">Tip: write down the title and the library that owns it, then give it to your librarian or library in-charge.</p><div style="text-align:right"><button type="button" data-close>OK, got it</button></div></div>`);return}
   if(ds.borrow){if(!current||current._id!==ds.borrow){try{current=(await api("record",{id:ds.borrow})).record}catch(x){toast(x.message);return}}showBorrow();return}
   if(ds.edit){if(!current||current._id!==ds.edit){try{current=(await api("record",{id:ds.edit})).record}catch(x){toast(x.message);return}}startEdit();return}
   if(ds.labels){if(current)printLabels([current],current.title);return}
