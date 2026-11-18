@@ -576,8 +576,10 @@ function toggleBType(){$("h_btypeL").hidden=$("h_type").value!=="Book"}
 function typeVal(){return $("h_type").value==="Book"?($("h_btype").value||"Book"):$("h_type").value}
 function setType(v){v=v||"Book";if(BOOKISH.includes(v)){$("h_type").value="Book";const b=v==="Book"?"":v;if(b&&![...$("h_btype").options].some(o=>o.value===b))$("h_btype").insertAdjacentHTML("beforeend",`<option value="${esc(b)}">${esc(b)}</option>`);$("h_btype").value=b}else{$("h_type").value=MAIN_TYPES.some(([x])=>x===v)?v:"Other";$("h_btype").value=""}toggleBType()}
 const ITYPE={"Book":"BK","Textbook":"TB","Learner's Material":"LM","Reference":"REF","Periodical":"SER","E-resource":"ER","Audio-visual":"AV","Other":"OTH"};
-const FUNDS=["","MOOE","DepEd Central / Regional Allocation","Division","LGU / SEF","Donation","Brigada Eskwela","PTA","Other"];
-const LANGS={"English":"eng","Filipino":"fil","Cebuano / Bisaya":"ceb","Other":"und"};
+const FUNDS=["","MOOE","DepEd Central Office Funds / BLR Funds","Regional Office Funds","Division Funds","LGU / SEF","Donation","Brigada Eskwela","PTA","Other"];
+const FUND_OLD={"Division":"Division Funds"};
+function fixSel(id,v){const el=$(id);if(!v||el.value===v)return;if(FUND_OLD[v]&&[...el.options].some(o=>o.value===FUND_OLD[v])){el.value=FUND_OLD[v];return}const o=document.createElement("option");o.value=o.textContent=v;el.appendChild(o);el.value=v}
+const LANGS={"English":"eng","Filipino":"fil","Cebuano / Bisaya":"ceb","English and Filipino":"mul","English and Bisaya":"mul","Other":"und"};
 const CATS=["Library Hub","School Library – Elementary","School Library – Secondary","School Library – Integrated / IS","School Library – Senior High","Division / LRMC Library"];
 const DIVISION="SCHOOLS DIVISION OF AGUSAN DEL NORTE", REGION="Republic of the Philippines · Department of Education · Caraga Region";
 
@@ -1633,7 +1635,7 @@ function resetForm(){filManual=false;$("classCheck").hidden=true;$("pubHint").in
   const keep=$("h_school").value;$("addForm").reset();setType("Book");$("h_school").value=lockedLib()||keep;$("h_copies").value=1;setCoverPreview(null);
   $("callHint").textContent="A call number is suggested from the subject, author and year. You can change it.";}
 function startEdit(){const h=current;if(!h||!canEditRec(h))return;closeModal();location.hash="add";
-  setTimeout(()=>{Object.entries(F).forEach(([k,f])=>$("h_"+k).value=h[f]??"");if(!$("h_lang").value)$("h_lang").value="English";{const L=legacyRec(h);$("h_subject").value=L.subject||"";setType(TYPES.includes(L.type)?L.type:"Book");$("h_fil").checked=L.filipiniana}
+  setTimeout(()=>{Object.entries(F).forEach(([k,f])=>$("h_"+k).value=h[f]??"");fixSel("h_fund",h.fund);fixSel("h_lang",h.language);if(!$("h_lang").value)$("h_lang").value="English";{const L=legacyRec(h);$("h_subject").value=L.subject||"";setType(TYPES.includes(L.type)?L.type:"Book");$("h_fil").checked=L.filipiniana}
     editing=h;callManual=true;ddcManual=true;subjManual=true;ddcWarned=false;filManual=true;coverChanged=false;coverData=null;setCoverPreview(h.cover||null);
     $("formTitle").textContent="Edit resource";$("cancelEdit").hidden=false;$("saveBtn").textContent="Update resource";
     $("delBox").innerHTML=`<button type="button" class="danger" id="delAsk">Remove from holdings</button>`;$("h_title").focus();},50);}
