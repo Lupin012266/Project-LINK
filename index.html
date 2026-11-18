@@ -400,7 +400,7 @@ header.top .who{max-width:min(100%,560px)}header.top .role{justify-content:flex-
       <p class="note">Copy rows from Excel or Google Sheets and paste them below. Columns in this order (the first row may be the header). Leave the call no. blank to have it suggested; barcodes are added automatically.<br>
       <span class="call" style="white-space:normal">Accession no · Title · Author · Call no · Subject · Grade level · Copies · Copyright year · Condition · Source of fund · Date received · DR/IAR No. · Publisher · ISBN</span></p>
       <label>Library for these rows<select id="b_school"></select></label>
-      <label>Pasted rows<textarea id="b_text" placeholder="2026-0001	Noli Me Tangere	Rizal, Jose		Filipino	Grade 9	5	2015	Good	MOOE	2026-06-15	IAR-2026-031	Adarna House	9789715081234"></textarea></label>
+      <label>Pasted rows<textarea id="b_text" placeholder="2026-0001	Noli Me Tangere	Rizal, Jose		Filipino	Key Stage 3	5	2015	Good	MOOE	2026-06-15	IAR-2026-031	Adarna House	9789715081234"></textarea></label>
       <div class="row"><button type="button" class="ghost" id="b_preview">Check rows</button><button type="button" id="b_save" disabled>Upload rows</button><span class="note" id="b_msg"></span></div>
     </div>
     </div>
@@ -566,7 +566,9 @@ function isFilipiniana(d){const tok=[d.ddc,...String(d.callNo||"").split(/\s+/)]
 function callPrefix(d){const t=d.type||"";if(t==="Reference")return"R";if(t==="Textbook"||t==="Learner's Material")return"TX";if(t==="Teacher's Guide")return"TG";if(t==="Thesis / Dissertation")return"Th";if(t==="Periodical")return"Per";
   if(d.filipiniana===true||d.filipiniana==="true")return"Fil";return(SUBJ_CALL[d.subject]||[""])[0]}
 const SUBJ_CALL={"000 General Works":["","000"],"100 Philosophy & Psychology":["","100"],"200 Religion & Values Education":["","200"],"300 Social Sciences / Araling Panlipunan":["","300"],"400 Language / English":["","420"],"500 Science & Mathematics":["","500"],"600 Technology / TLE & Health":["","600"],"700 Arts, MAPEH & Recreation":["","700"],"800 Literature":["","800"],"899 Filipino Literature":["","899.21"],"900 History & Geography":["","900"],"Fiction":["F",""],"Easy Books (picture books, K–3)":["E",""],"Biography":["B","920"],"Reference (Dictionary, Encyclopedia)":["R","030"],"Filipiniana":["Fil","959.9"],"Textbooks / Learner's Materials":["TX",""],"Teacher's Guides":["TG","371.3"],"Periodicals":["Per","050"]};
-const GRADES=["","Kindergarten","Grade 1","Grade 2","Grade 3","Grade 4","Grade 5","Grade 6","Grade 7","Grade 8","Grade 9","Grade 10","Grade 11","Grade 12","Multi-grade / General"];
+const GRADES=["","Key Stage 1","Key Stage 2","Key Stage 3","Key Stage 4"];
+const KS_RANGE={"Key Stage 1":"Kindergarten to Grade 3","Key Stage 2":"Grades 4 to 6","Key Stage 3":"Grades 7 to 10","Key Stage 4":"Grades 11 to 12"};
+function toKS(g){g=String(g||"").trim();if(!g||/^Key Stage [1-4]$/.test(g))return g;if(/kinder|^k$/i.test(g))return"Key Stage 1";const n=parseInt(g.replace(/\D/g,""));if(!n)return g;return n<=3?"Key Stage 1":n<=6?"Key Stage 2":n<=10?"Key Stage 3":n<=12?"Key Stage 4":g}
 const TYPES=["Book","Storybook / Picture book","Novel","Textbook","Learner's Material","Teacher's Guide","Reference","Thesis / Dissertation","Journal","Periodical","Globe","Map","E-resource","Audio-visual","Other"];
 const MAIN_TYPES=[["Book","Book"],["Thesis / Dissertation","Thesis / Dissertation"],["Journal","Journal"],["Periodical","Periodicals (newspaper, magazine)"],["Globe","Globe"],["Map","Map"],["E-resource","E-Resource"],["Audio-visual","Audio-visual"],["Other","Others"]];
 const BOOK_KINDS=[["","Book (general)"],["Storybook / Picture book","Storybook / Picture book"],["Novel","Novel"],["Textbook","Textbook"],["Reference","Reference"]];
@@ -634,7 +636,7 @@ const RULES=`<div class="rules"><h3>Borrowing rules and policy</h3><div class="r
 const isOverdue=r=>r.status==="Lent"&&r.dueDate&&r.dueDate<todayISO();
 
 /* ===================== static selects ===================== */
-$("h_subject").innerHTML=opts(SUBJECTS,"— Choose subject —");$("h_grade").innerHTML=opts(GRADES);fillTypeSelects();$("h_fund").innerHTML=opts(FUNDS);$("h_binsel").innerHTML=BIN_OPTS.map(([v,t])=>`<option value="${v}">${t}</option>`).join("");$("h_binsel").addEventListener("change",binFromSel);
+$("h_subject").innerHTML=opts(SUBJECTS,"— Choose subject —");$("h_grade").innerHTML=GRADES.map(g=>`<option value="${g}">${g?g+" ("+KS_RANGE[g]+")":"—"}</option>`).join("");fillTypeSelects();$("h_fund").innerHTML=opts(FUNDS);$("h_binsel").innerHTML=BIN_OPTS.map(([v,t])=>`<option value="${v}">${t}</option>`).join("");$("h_binsel").addEventListener("change",binFromSel);
 $("h_lang").innerHTML=opts(Object.keys(LANGS));$("s_cat").innerHTML=opts(CATS);
 $("fSubject").innerHTML=opts(SUBJECTS,"All subjects");$("fGrade").innerHTML=opts(GRADES.filter(Boolean),"All");
 $("fCat").innerHTML=opts(CATS,"All types");$("r_cat").innerHTML=opts(CATS,"All types");
@@ -840,7 +842,7 @@ function printCards(list,name){if(!list.length){toast("No records to make catalo
 function labelHTML(h,code){return `<div class="label"><div class="lt">${esc(libName(h.schoolId))}</div><div class="lt">${esc(h.title)}</div><div class="lc">${esc(h.callNo||"")}</div>${barcodeSVG(code)}</div>`}
 
 /* ===================== MARC ===================== */
-function audience(g){if(!g)return" ";if(/Kinder/.test(g))return"a";const n=parseInt(String(g).replace(/\D/g,""));if(!n)return" ";return n<=3?"b":n<=6?"c":"d"}
+function audience(g){g=toKS(g);if(g==="Key Stage 1")return"b";if(g==="Key Stage 2")return"c";if(/^Key Stage [34]$/.test(g))return"d";if(!g)return" ";if(/Kinder/.test(g))return"a";const n=parseInt(String(g).replace(/\D/g,""));if(!n)return" ";return n<=3?"b":n<=6?"c":"d"}
 function stamp(iso){const d=iso?new Date(String(iso).replace(" ","T")):new Date();const p=n=>String(n).padStart(2,"0");return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}.0`}
 function nonfiling(t){const m=/^(the |an |a |ang |mga )/i.exec(t||"");return m?String(Math.min(9,m[1].length)):"0"}
 const LEADER="00000nam a2200000 a 4500";
@@ -1200,7 +1202,7 @@ function realmOf(h){const t=h.type||"",txt=`${h.title||""} ${h.subject||""}`,n=c
   if(KOMIKS_RE.test(txt)||(n!=null&&n>=741.5&&n<741.6))return"komiks";
   if(["Textbook","Learner's Material","Teacher's Guide","Reference","Thesis / Dissertation","Globe","Map"].includes(t))return"aral";
   if(t==="Storybook / Picture book"||/^(easy|picture)/i.test(String(h.subject||"").trim())||/^(fil\s+)?e\b/i.test(String(h.callNo||"").trim())||KID_RE.test(txt))return"kid";
-  const lit=t==="Novel"||LEGACY_LIT(h.subject)||(n!=null&&n>=800&&n<900);if(lit&&/^(Kindergarten|Grade \d+)$/.test(h.grade||""))return"kid";
+  const lit=t==="Novel"||LEGACY_LIT(h.subject)||(n!=null&&n>=800&&n<900);if(lit&&/^(Kindergarten|Grade \d+|Key Stage [1-4])$/.test(h.grade||""))return"kid";
   if(n!=null&&n<100)return"aral";
   return"book"}
 async function loadOverview(){if(!$("ovPanel"))return;ovFillFilters();
@@ -1638,7 +1640,7 @@ function resetForm(){filManual=false;$("classCheck").hidden=true;$("pubHint").in
   const keep=$("h_school").value;$("addForm").reset();setType("Book");$("h_school").value=lockedLib()||keep;$("h_copies").value=1;binToSel();setCoverPreview(null);
   $("callHint").textContent="A call number is suggested from the subject, author and year. You can change it.";}
 function startEdit(){const h=current;if(!h||!canEditRec(h))return;closeModal();location.hash="add";
-  setTimeout(()=>{Object.entries(F).forEach(([k,f])=>$("h_"+k).value=h[f]??"");fixSel("h_fund",h.fund);fixSel("h_lang",h.language);binToSel();if(!$("h_lang").value)$("h_lang").value="English";{const L=legacyRec(h);$("h_subject").value=L.subject||"";setType(TYPES.includes(L.type)?L.type:"Book");$("h_fil").checked=L.filipiniana}
+  setTimeout(()=>{Object.entries(F).forEach(([k,f])=>$("h_"+k).value=h[f]??"");fixSel("h_fund",h.fund);fixSel("h_lang",h.language);binToSel();$("h_grade").value=toKS(h.grade);if(!$("h_lang").value)$("h_lang").value="English";{const L=legacyRec(h);$("h_subject").value=L.subject||"";setType(TYPES.includes(L.type)?L.type:"Book");$("h_fil").checked=L.filipiniana}
     editing=h;callManual=true;ddcManual=true;subjManual=true;ddcWarned=false;filManual=true;coverChanged=false;coverData=null;setCoverPreview(h.cover||null);
     $("formTitle").textContent="Edit resource";$("cancelEdit").hidden=false;$("saveBtn").textContent="Update resource";
     $("delBox").innerHTML=`<button type="button" class="danger" id="delAsk">Remove from holdings</button>`;$("h_title").focus();},50);}
@@ -1697,7 +1699,7 @@ function parseRows(){const lines=$("b_text").value.split(/\r?\n/).filter(l=>l.tr
     if(/refer/i.test(s0))ptype="Reference";else if(/thesis|dissert/i.test(s0))ptype="Thesis / Dissertation";else if(/teacher/i.test(s0))ptype="Teacher's Guide";else if(/textbook|learner/i.test(s0))ptype="Textbook";else if(/periodical|magazine|newspaper/i.test(s0))ptype="Periodical";
     if(/filipiniana/i.test(s0))pfil=true;
     const subject=(ptype!=="Book"||pfil)?(ddcToSubj((call||"").split(/\s+/).find(x=>/^\d{3}/.test(x)))||ddcToSubj(suggestDDC({title,subject:""}).ddc)||"000 General Works"):legacySubj(subject0);const sub=SUBJECTS.find(s=>s.toLowerCase()===String(subject||"").toLowerCase())||SUBJECTS.find(s=>subject&&s.toLowerCase().includes(subject.toLowerCase()))||"000 General Works";
-    const r={accessionNo:acc,title,author:author||"",callNo:call||"",subject:sub,grade:grade||"",copies:Math.max(1,parseInt(copies)||1),year:year||"",
+    const r={accessionNo:acc,title,author:author||"",callNo:call||"",subject:sub,grade:toKS(grade),copies:Math.max(1,parseInt(copies)||1),year:year||"",
       condition:/poor/i.test(cond)?"Poor":/fair/i.test(cond)?"Fair":"Good",fund:fund||"",dateReceived:normDate(date),drNo:dr||"",publisher:publisher||"",isbn:isbn||"",type:ptype,filipiniana:pfil};
     if(!r.callNo)r.callNo=suggestCall(r);out.push(r);});
   return{out,bad};}
