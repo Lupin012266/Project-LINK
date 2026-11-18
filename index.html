@@ -383,7 +383,7 @@ header.top .who{max-width:min(100%,560px)}header.top .role{justify-content:flex-
           <label>Source of fund<select id="h_fund"></select></label>
           <label>Date received<input id="h_date" type="date"></label>
           <label>DR No. / IAR No. (optional)<input id="h_dr" placeholder="Leave blank if none, e.g. donations"></label>
-          <label>Bin no. (Library Hub books)<select id="h_binsel"></select><input id="h_bin" placeholder="Type the bin number, e.g. Bin 31" hidden style="margin-top:6px"><span class="hint">Library Hub collections are lent by bin. Choose “No bins yet” if the hub has not grouped its books into bins. School libraries: leave as “—”.</span></label>
+          <label>Bin no. (Library Hub books)<input id="h_bin" placeholder="Type the bin no., e.g. Bin 01"><span class="hint" style="display:flex;align-items:center;gap:6px;margin-top:4px"><input type="checkbox" id="h_nobin" style="width:auto;margin:0"> No bin no. yet</span><span class="hint">Library Hub collections are lent by bin. Leave blank for school libraries.</span></label>
           <label class="span2">Remarks<input id="h_remarks"></label>
         </div>
       </fieldset>
@@ -566,7 +566,7 @@ function isFilipiniana(d){const tok=[d.ddc,...String(d.callNo||"").split(/\s+/)]
 function callPrefix(d){const t=d.type||"";if(t==="Reference")return"R";if(t==="Textbook"||t==="Learner's Material")return"TX";if(t==="Teacher's Guide")return"TG";if(t==="Thesis / Dissertation")return"Th";if(t==="Periodical")return"Per";
   if(d.filipiniana===true||d.filipiniana==="true")return"Fil";return(SUBJ_CALL[d.subject]||[""])[0]}
 const SUBJ_CALL={"000 General Works":["","000"],"100 Philosophy & Psychology":["","100"],"200 Religion & Values Education":["","200"],"300 Social Sciences / Araling Panlipunan":["","300"],"400 Language / English":["","420"],"500 Science & Mathematics":["","500"],"600 Technology / TLE & Health":["","600"],"700 Arts, MAPEH & Recreation":["","700"],"800 Literature":["","800"],"899 Filipino Literature":["","899.21"],"900 History & Geography":["","900"],"Fiction":["F",""],"Easy Books (picture books, K–3)":["E",""],"Biography":["B","920"],"Reference (Dictionary, Encyclopedia)":["R","030"],"Filipiniana":["Fil","959.9"],"Textbooks / Learner's Materials":["TX",""],"Teacher's Guides":["TG","371.3"],"Periodicals":["Per","050"]};
-const GRADES=["","Key Stage 1","Key Stage 2","Key Stage 3","Key Stage 4"];
+const GRADES=["","Key Stage 1","Key Stage 2","Key Stage 3","Key Stage 4","Others"];
 const KS_RANGE={"Key Stage 1":"Kindergarten to Grade 3","Key Stage 2":"Grades 4 to 6","Key Stage 3":"Grades 7 to 10","Key Stage 4":"Grades 11 to 12"};
 function toKS(g){g=String(g||"").trim();if(!g||/^Key Stage [1-4]$/.test(g))return g;if(/kinder|^k$/i.test(g))return"Key Stage 1";const n=parseInt(g.replace(/\D/g,""));if(!n)return g;return n<=3?"Key Stage 1":n<=6?"Key Stage 2":n<=10?"Key Stage 3":n<=12?"Key Stage 4":g}
 const TYPES=["Book","Storybook / Picture book","Novel","Textbook","Learner's Material","Teacher's Guide","Reference","Thesis / Dissertation","Journal","Periodical","Globe","Map","E-resource","Audio-visual","Other"];
@@ -580,9 +580,8 @@ function setType(v){v=v||"Book";if(BOOKISH.includes(v)){$("h_type").value="Book"
 const ITYPE={"Book":"BK","Textbook":"TB","Learner's Material":"LM","Reference":"REF","Periodical":"SER","E-resource":"ER","Audio-visual":"AV","Other":"OTH"};
 const FUNDS=["","MOOE","DepEd Central Office Funds / BLR Funds","Regional Office Funds","Division Funds","LGU / SEF","Donation","Brigada Eskwela","PTA","Other"];
 const FUND_OLD={"Division":"Division Funds"};
-const BIN_OPTS=[["","—"],["__none","No bins yet"],...Array.from({length:30},(_,i)=>{const b="Bin "+String(i+1).padStart(2,"0");return[b,b]}),["__other","Other bin number…"]];
-function binFromSel(){const v=$("h_binsel").value,inp=$("h_bin");inp.hidden=v!=="__other";if(v==="__other"){if(BIN_OPTS.some(o=>o[0]===inp.value))inp.value="";inp.focus()}else inp.value=(v==="__none"?"":v)}
-function binToSel(){const v=$("h_bin").value.trim(),sel=$("h_binsel");if(!v){sel.value=(typeof isHub==="function"&&isHub($("h_school").value))?"__none":"";$("h_bin").hidden=true;return}if(BIN_OPTS.some(o=>o[0]===v&&!o[0].startsWith("__"))){sel.value=v;$("h_bin").hidden=true}else{sel.value="__other";$("h_bin").hidden=false}}
+function binFromChk(){const c=$("h_nobin").checked,i=$("h_bin");if(c)i.value="";i.disabled=c}
+function binToSel(){const v=$("h_bin").value.trim();$("h_nobin").checked=!v&&typeof isHub==="function"&&isHub($("h_school").value);binFromChk()}
 function fixSel(id,v){const el=$(id);if(!v||el.value===v)return;if(FUND_OLD[v]&&[...el.options].some(o=>o.value===FUND_OLD[v])){el.value=FUND_OLD[v];return}const o=document.createElement("option");o.value=o.textContent=v;el.appendChild(o);el.value=v}
 const LANGS={"English":"eng","Filipino":"fil","Cebuano / Bisaya":"ceb","English and Filipino":"mul","English and Bisaya":"mul","Other":"und"};
 const CATS=["Library Hub","School Library – Elementary","School Library – Secondary","School Library – Integrated / IS","School Library – Senior High","Division / LRMC Library"];
@@ -636,7 +635,7 @@ const RULES=`<div class="rules"><h3>Borrowing rules and policy</h3><div class="r
 const isOverdue=r=>r.status==="Lent"&&r.dueDate&&r.dueDate<todayISO();
 
 /* ===================== static selects ===================== */
-$("h_subject").innerHTML=opts(SUBJECTS,"— Choose subject —");$("h_grade").innerHTML=GRADES.map(g=>`<option value="${g}">${g?g+" ("+KS_RANGE[g]+")":"—"}</option>`).join("");fillTypeSelects();$("h_fund").innerHTML=opts(FUNDS);$("h_binsel").innerHTML=BIN_OPTS.map(([v,t])=>`<option value="${v}">${t}</option>`).join("");$("h_binsel").addEventListener("change",binFromSel);
+$("h_subject").innerHTML=opts(SUBJECTS,"— Choose subject —");$("h_grade").innerHTML=GRADES.map(g=>`<option value="${g}">${g?(KS_RANGE[g]?g+" ("+KS_RANGE[g]+")":g):"—"}</option>`).join("");fillTypeSelects();$("h_fund").innerHTML=opts(FUNDS);$("h_nobin").addEventListener("change",binFromChk);
 $("h_lang").innerHTML=opts(Object.keys(LANGS));$("s_cat").innerHTML=opts(CATS);
 $("fSubject").innerHTML=opts(SUBJECTS,"All subjects");$("fGrade").innerHTML=opts(GRADES.filter(Boolean),"All");
 $("fCat").innerHTML=opts(CATS,"All types");$("r_cat").innerHTML=opts(CATS,"All types");
