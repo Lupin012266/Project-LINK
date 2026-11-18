@@ -352,7 +352,6 @@ header.top .who{max-width:min(100%,560px)}header.top .role{justify-content:flex-
           <label>Type of resource<select id="h_type"></select></label>
           <label id="h_btypeL">Kind of book<select id="h_btype"></select></label>
           <label class="checkline"><span style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="h_fil" style="width:auto"> Filipiniana collection</span><span class="hint">About the Philippines, by a Filipino author, published in the Philippines, or in a Philippine language. Checked automatically; you can change it.</span></label>
-          <label class="checkline" style="grid-column:1/-1"><span style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="h_fic" style="width:auto"> Fiction collection</span><span class="hint">A book is shelved in one section only: choose Filipiniana <i>or</i> Fiction, not both.<br>• Storybooks and picture books by a <b>Filipino</b> author or publisher → <b>Fil</b> + author mark, shelved in the <b>Filipiniana section</b>.<br>• Storybooks and picture books by a <b>foreign</b> author and publisher → <b>Fic</b> + author mark, shelved in the <b>Fiction section</b>.</span></label>
         </div>
       </fieldset>
       <fieldset><legend>Call number</legend>
@@ -565,7 +564,7 @@ const PH_TITLE_RE=/pilipinas|philippine|filipin|pinoy|\brizal\b|bayani|mindanao|
 function isFilipiniana(d){const tok=[d.ddc,...String(d.callNo||"").split(/\s+/)].find(x=>/^\d{3}(\.\d+)?$/.test(String(x||"").trim()))||"";
   return PH_LANG_RE.test(d.language||"")||PH_PUB_RE.test(d.publisher||"")||PH_PLACE_RE.test(d.place||"")||/^(899\.2|959\.9|499\.21)/.test(tok)||PH_TITLE_RE.test(d.title||"")}
 function callPrefix(d){const t=d.type||"";if(t==="Reference")return"R";if(t==="Textbook"||t==="Learner's Material")return"TX";if(t==="Teacher's Guide")return"TG";if(t==="Thesis / Dissertation")return"Th";if(t==="Periodical")return"Per";
-  if(d.fiction===true)return"Fic";if(d.filipiniana===true||d.filipiniana==="true")return"Fil";return(SUBJ_CALL[d.subject]||[""])[0]}
+  if(d.filipiniana===true||d.filipiniana==="true")return"Fil";return(SUBJ_CALL[d.subject]||[""])[0]}
 const SUBJ_CALL={"000 General Works":["","000"],"100 Philosophy & Psychology":["","100"],"200 Religion & Values Education":["","200"],"300 Social Sciences / Araling Panlipunan":["","300"],"400 Language / English":["","420"],"500 Science & Mathematics":["","500"],"600 Technology / TLE & Health":["","600"],"700 Arts, MAPEH & Recreation":["","700"],"800 Literature":["","800"],"899 Filipino Literature":["","899.21"],"900 History & Geography":["","900"],"Fiction":["F",""],"Easy Books (picture books, K–3)":["E",""],"Biography":["B","920"],"Reference (Dictionary, Encyclopedia)":["R","030"],"Filipiniana":["Fil","959.9"],"Textbooks / Learner's Materials":["TX",""],"Teacher's Guides":["TG","371.3"],"Periodicals":["Per","050"]};
 const GRADES=["","Key Stage 1","Key Stage 2","Key Stage 3","Key Stage 4","Others"];
 const KS_RANGE={"Key Stage 1":"Kindergarten to Grade 3","Key Stage 2":"Grades 4 to 6","Key Stage 3":"Grades 7 to 10","Key Stage 4":"Grades 11 to 12"};
@@ -783,22 +782,20 @@ function showClassCheck(ck){const b=$("classCheck");b.hidden=false;const f=ck.fi
 function ddcToSubj(ddc){const m=/^(\d{3})/.exec(String(ddc||""));if(!m)return "";const n=parseInt(m[1],10);if(n>=899&&n<900)return "899 Filipino Literature";
   const c=String(Math.floor(n/100)*100).padStart(3,"0");return SUBJECTS.find(s=>s.startsWith(c+" "))||""}
 const NO_CLASS=["F","E","B","Fic","TX"];
-const STORY_TYPES=["Storybook / Picture book","Novel"];
 function suggestCall(d){const prefix=callPrefix(d);
   const yr=/^\d{4}$/.test(String(d.year||"").trim())?String(d.year).trim():"";
   const ddc=/^\d{3}(\.\d+)?$/.test(String(d.ddc||"").trim())?String(d.ddc).trim():suggestDDC(d).ddc;
-  const cls=(NO_CLASS.includes(prefix)||(prefix==="Fil"&&STORY_TYPES.includes(d.type)))?"":ddc;
+  const cls=NO_CLASS.includes(prefix)?"":ddc;
   const mark=lcCutter(mainEntryWord(d.author,d.title));
   return [prefix,cls,mark,yr].filter(Boolean).join(" ");}
-const formSnapshot=()=>({fiction:$("h_fic").checked,filipiniana:$("h_fil").checked,subject:$("h_subject").value,type:typeVal(),year:$("h_year").value,author:$("h_author").value,title:$("h_title").value,ddc:$("h_ddc").value});
-let ddcManual=false,subjManual=false,ddcWarned=false,filManual=false,ficManual=false;
-function autoFic(){if(ficManual)return;const v=!$("h_fil").checked&&STORY_TYPES.includes(typeVal());if($("h_fic").checked!==v)$("h_fic").checked=v}
-function autoFil(){if(filManual)return;const s=formSnapshot();const v=isFilipiniana({...s,callNo:$("h_call").value,language:$("h_lang").value,publisher:$("h_publisher").value,place:$("h_place").value});if($("h_fil").checked!==v){$("h_fil").checked=v;autoFic();if(!callManual)$("h_call").value=suggestCall(formSnapshot())}}
+const formSnapshot=()=>({filipiniana:$("h_fil").checked,subject:$("h_subject").value,type:typeVal(),year:$("h_year").value,author:$("h_author").value,title:$("h_title").value,ddc:$("h_ddc").value});
+let ddcManual=false,subjManual=false,ddcWarned=false,filManual=false;
+function autoFil(){if(filManual)return;const s=formSnapshot();const v=isFilipiniana({...s,callNo:$("h_call").value,language:$("h_lang").value,publisher:$("h_publisher").value,place:$("h_place").value});if($("h_fil").checked!==v){$("h_fil").checked=v;if(!callManual)$("h_call").value=suggestCall(formSnapshot())}}
 const STORY_CHIPS=[["899.2113","Storybook / kuwento (Filipino)"],["823","Storybook / novel (English)"],["031","Encyclopedia"],["423","English dictionary"]];
 function autoSubj(){if(subjManual)return;const s=suggestDDC({title:$("h_title").value,subject:""});const sub=s.ddc?ddcToSubj(s.ddc):"";if(sub)$("h_subject").value=sub}
 function showChips(on){const c=$("ddcChips");c.hidden=!on;if(on&&!c.innerHTML)c.innerHTML=" Not sure? Choose one: "+STORY_CHIPS.map(([n,l])=>`<button type="button" class="ghost sm" data-ddc="${n}">${n} ${esc(l)}</button>`).join(" ")}
 function autoDDC(){if(ddcManual)return;const s=suggestDDC(formSnapshot());$("h_ddc").value=s.ddc;$("ddcHint").textContent=s.ddc?`DDC class ${s.ddc} suggested from ${s.why}. Check it.`:"No DDC class found from the title. Choose one below, or type it at the start of the call number.";showChips(!s.ddc);}
-function autoCall(){autoSubj();autoDDC();autoFil();autoFic();if(callManual)return;const s=suggestCall(formSnapshot());if(s)$("h_call").value=s;}
+function autoCall(){autoSubj();autoDDC();autoFil();if(callManual)return;const s=suggestCall(formSnapshot());if(s)$("h_call").value=s;}
 async function isbnFind(){const isbn=$("h_isbn").value.replace(/[^0-9Xx]/g,"");if(isbn.length<10){$("isbnHint").textContent="Type the 10- or 13-digit ISBN first.";return}
   $("isbnHint").textContent="Looking up…";
   try{const r=await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`);const j=await r.json();const b=j["ISBN:"+isbn];
@@ -1637,12 +1634,12 @@ function renderAdd(){const ok=canAdd();$("addGate").hidden=ok;$("addArea").hidde
   if(!ok)$("addGate").innerHTML=!ME?`<strong>Log in to add resources</strong><a href="#account">Log in or sign up</a>. The division librarian approves new librarians.`:ME.status==="pending"?"<strong>Waiting for approval</strong>The division librarian will approve your account soon. You can add resources once you're approved.":"<strong>Your account is not approved</strong>Contact the division librarian.";
   else if(!editing&&!$("h_school").value&&myLib())$("h_school").value=myLib();}
 function setCoverPreview(src){$("coverPrev").innerHTML=src?`<img src="${esc(src)}" alt="Cover preview">`:"No cover";$("coverClear").hidden=!src}
-function resetForm(){filManual=false;ficManual=false;$("classCheck").hidden=true;$("pubHint").innerHTML="";$("pubHint").dataset.m="";editing=null;coverData=null;coverChanged=false;callManual=false;ddcManual=false;subjManual=false;ddcWarned=false;showChips(false);
+function resetForm(){filManual=false;$("classCheck").hidden=true;$("pubHint").innerHTML="";$("pubHint").dataset.m="";editing=null;coverData=null;coverChanged=false;callManual=false;ddcManual=false;subjManual=false;ddcWarned=false;showChips(false);
   $("formTitle").textContent="Add a resource to your library's holdings";$("cancelEdit").hidden=true;$("saveBtn").textContent="Save resource";$("delBox").innerHTML="";
   const keep=$("h_school").value;$("addForm").reset();setType("Book");$("h_school").value=lockedLib()||keep;$("h_copies").value=1;binToSel();setCoverPreview(null);
   $("callHint").textContent="A call number is suggested from the subject, author and year. You can change it.";}
 function startEdit(){const h=current;if(!h||!canEditRec(h))return;closeModal();location.hash="add";
-  setTimeout(()=>{Object.entries(F).forEach(([k,f])=>$("h_"+k).value=h[f]??"");fixSel("h_fund",h.fund);fixSel("h_lang",h.language);binToSel();$("h_grade").value=toKS(h.grade);if(!$("h_lang").value)$("h_lang").value="English";{const L=legacyRec(h);$("h_subject").value=L.subject||"";setType(TYPES.includes(L.type)?L.type:"Book");$("h_fil").checked=L.filipiniana;$("h_fic").checked=!L.filipiniana&&/^Fic\b/.test(String(h.callNo||"").trim())}
+  setTimeout(()=>{Object.entries(F).forEach(([k,f])=>$("h_"+k).value=h[f]??"");fixSel("h_fund",h.fund);fixSel("h_lang",h.language);binToSel();$("h_grade").value=toKS(h.grade);if(!$("h_lang").value)$("h_lang").value="English";{const L=legacyRec(h);$("h_subject").value=L.subject||"";setType(TYPES.includes(L.type)?L.type:"Book");$("h_fil").checked=L.filipiniana}
     editing=h;callManual=true;ddcManual=true;subjManual=true;ddcWarned=false;filManual=true;coverChanged=false;coverData=null;setCoverPreview(h.cover||null);
     $("formTitle").textContent="Edit resource";$("cancelEdit").hidden=false;$("saveBtn").textContent="Update resource";
     $("delBox").innerHTML=`<button type="button" class="danger" id="delAsk">Remove from holdings</button>`;$("h_title").focus();},50);}
@@ -1669,11 +1666,10 @@ $("addForm").addEventListener("submit",async e=>{e.preventDefault();if(!canAdd()
   catch(err){$("formMsg").textContent="Couldn't save: "+err.message}
   $("saveBtn").disabled=false;});
 $("cancelEdit").onclick=()=>{resetForm();$("formMsg").textContent=""};
-["h_type","h_btype","h_year","h_author","h_title"].forEach(id=>$(id).addEventListener("input",autoCall));$("h_type").addEventListener("change",toggleBType);$("h_btype").addEventListener("change",autoCall);
-$("h_fic").addEventListener("change",()=>{ficManual=true;if($("h_fic").checked){$("h_fil").checked=false;filManual=true}if(!callManual)$("h_call").value=suggestCall(formSnapshot())});
+["h_type","h_btype","h_year","h_author","h_title"].forEach(id=>$(id).addEventListener("input",autoCall));$("h_type").addEventListener("change",toggleBType);
 $("h_call").addEventListener("input",()=>{callManual=$("h_call").value.trim()!==""});
 $("h_publisher").addEventListener("change",checkPub);
-$("h_fil").addEventListener("change",()=>{filManual=true;if($("h_fil").checked){$("h_fic").checked=false;ficManual=true}else{ficManual=false;autoFic()}if(!callManual)$("h_call").value=suggestCall(formSnapshot())});
+$("h_fil").addEventListener("change",()=>{filManual=true;if(!callManual)$("h_call").value=suggestCall(formSnapshot())});
 ["h_lang","h_publisher","h_place"].forEach(id=>$(id).addEventListener("change",()=>{autoFil()}));$("h_place").addEventListener("input",autoFil);$("h_publisher").addEventListener("blur",checkPub);
 $("callSuggest").onclick=()=>{ddcManual=false;callManual=false;autoDDC();$("h_call").value=suggestCall(formSnapshot());$("callHint").textContent="Collection prefix + DDC class + LC Cutter number + year. Check it before saving."};
 $("ddcSuggest").onclick=()=>{ddcManual=false;callManual=false;autoCall()};
